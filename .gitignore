@@ -1,0 +1,17 @@
+# Helm chart build artifacts
+*.tgz
+charts/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# pre-commit cache
+.pre-commit-cache/

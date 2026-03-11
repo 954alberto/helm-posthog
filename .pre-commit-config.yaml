@@ -1,0 +1,30 @@
+repos:
+  # General file hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: ['--allow-multiple-documents']
+        exclude: 'templates/.*'  # Helm templates are not valid YAML
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+
+  # Helm lint
+  - repo: https://github.com/gruntwork-io/pre-commit
+    rev: v0.1.27
+    hooks:
+      - id: helmlint
+        args: ['--strict']
+
+  # YAML formatting (non-template files only)
+  - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+    rev: v2.14.0
+    hooks:
+      - id: pretty-format-yaml
+        args: ['--autofix', '--indent', '2']
+        exclude: 'templates/.*'
