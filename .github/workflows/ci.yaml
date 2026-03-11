@@ -14,183 +14,183 @@ jobs:
     name: Pre-commit Hooks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v4
-        with:
-          version: v3.17.0
+    - name: Set up Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: v3.17.0
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
 
-      - uses: pre-commit/action@v3.0.1
+    - uses: pre-commit/action@v3.0.1
 
   lint:
     name: Helm Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v4
-        with:
-          version: v3.17.0
+    - name: Set up Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: v3.17.0
 
-      - name: Helm lint
-        run: helm lint . --strict
+    - name: Helm lint
+      run: helm lint . --strict
 
-      - name: Helm lint (with production values)
-        run: |
-          helm lint . --strict \
-            --set web.autoscaling.enabled=true \
-            --set capture.autoscaling.enabled=true \
-            --set web.podDisruptionBudget.enabled=true \
-            --set networkPolicies.enabled=true \
-            --set metrics.enabled=true
+    - name: Helm lint (with production values)
+      run: |
+        helm lint . --strict \
+          --set web.autoscaling.enabled=true \
+          --set capture.autoscaling.enabled=true \
+          --set web.podDisruptionBudget.enabled=true \
+          --set networkPolicies.enabled=true \
+          --set metrics.enabled=true
 
   template:
     name: Helm Template
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v4
-        with:
-          version: v3.17.0
+    - name: Set up Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: v3.17.0
 
-      - name: Template (defaults)
-        run: helm template test-release . > /dev/null
+    - name: Template (defaults)
+      run: helm template test-release . > /dev/null
 
-      - name: Template (all features enabled)
-        run: |
-          helm template test-release . \
-            --set web.autoscaling.enabled=true \
-            --set worker.autoscaling.enabled=true \
-            --set plugins.autoscaling.enabled=true \
-            --set capture.autoscaling.enabled=true \
-            --set replayCapture.autoscaling.enabled=true \
-            --set featureFlags.autoscaling.enabled=true \
-            --set web.podDisruptionBudget.enabled=true \
-            --set worker.podDisruptionBudget.enabled=true \
-            --set plugins.podDisruptionBudget.enabled=true \
-            --set capture.podDisruptionBudget.enabled=true \
-            --set replayCapture.podDisruptionBudget.enabled=true \
-            --set featureFlags.podDisruptionBudget.enabled=true \
-            --set temporalDjangoWorker.podDisruptionBudget.enabled=true \
-            --set networkPolicies.enabled=true \
-            --set metrics.enabled=true \
-            --set existingSecret=test-secret \
-            > /dev/null
+    - name: Template (all features enabled)
+      run: |
+        helm template test-release . \
+          --set web.autoscaling.enabled=true \
+          --set worker.autoscaling.enabled=true \
+          --set plugins.autoscaling.enabled=true \
+          --set capture.autoscaling.enabled=true \
+          --set replayCapture.autoscaling.enabled=true \
+          --set featureFlags.autoscaling.enabled=true \
+          --set web.podDisruptionBudget.enabled=true \
+          --set worker.podDisruptionBudget.enabled=true \
+          --set plugins.podDisruptionBudget.enabled=true \
+          --set capture.podDisruptionBudget.enabled=true \
+          --set replayCapture.podDisruptionBudget.enabled=true \
+          --set featureFlags.podDisruptionBudget.enabled=true \
+          --set temporalDjangoWorker.podDisruptionBudget.enabled=true \
+          --set networkPolicies.enabled=true \
+          --set metrics.enabled=true \
+          --set existingSecret=test-secret \
+          > /dev/null
 
-      - name: Template (external services)
-        run: |
-          helm template test-release . \
-            --set postgresql.enabled=false \
-            --set externalPostgresql.url="postgres://u:p@host:5432/db" \
-            --set redis.enabled=false \
-            --set externalRedis.url="redis://host:6379/" \
-            --set clickhouse.enabled=false \
-            --set externalClickhouse.host="ch.example.com" \
-            --set kafka.enabled=false \
-            --set externalKafka.brokers="kafka:9092" \
-            --set minio.enabled=false \
-            --set externalObjectStorage.endpoint="https://s3.example.com" \
-            --set seaweedfs.enabled=false \
-            --set externalSeaweedfs.endpoint="https://s3.example.com" \
-            --set temporal.enabled=false \
-            --set externalTemporal.host="temporal.example.com" \
-            > /dev/null
+    - name: Template (external services)
+      run: |
+        helm template test-release . \
+          --set postgresql.enabled=false \
+          --set externalPostgresql.url="postgres://u:p@host:5432/db" \
+          --set redis.enabled=false \
+          --set externalRedis.url="redis://host:6379/" \
+          --set clickhouse.enabled=false \
+          --set externalClickhouse.host="ch.example.com" \
+          --set kafka.enabled=false \
+          --set externalKafka.brokers="kafka:9092" \
+          --set minio.enabled=false \
+          --set externalObjectStorage.endpoint="https://s3.example.com" \
+          --set seaweedfs.enabled=false \
+          --set externalSeaweedfs.endpoint="https://s3.example.com" \
+          --set temporal.enabled=false \
+          --set externalTemporal.host="temporal.example.com" \
+          > /dev/null
 
   kubeconform:
     name: Kubeconform (Schema Validation)
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s-version: ['1.28.0', '1.29.0', '1.30.0', '1.31.0']
+        k8s-version: [1.28.0, 1.29.0, 1.30.0, 1.31.0]
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v4
-        with:
-          version: v3.17.0
+    - name: Set up Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: v3.17.0
 
-      - name: Install kubeconform
-        run: |
-          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
-            | tar xz -C /usr/local/bin kubeconform
+    - name: Install kubeconform
+      run: |
+        curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
+          | tar xz -C /usr/local/bin kubeconform
 
-      - name: Render and validate (K8s ${{ matrix.k8s-version }})
-        run: |
-          helm template test-release . \
-            | kubeconform \
-              -kubernetes-version ${{ matrix.k8s-version }} \
-              -strict \
-              -ignore-missing-schemas \
-              -summary
+    - name: Render and validate (K8s ${{ matrix.k8s-version }})
+      run: |
+        helm template test-release . \
+          | kubeconform \
+            -kubernetes-version ${{ matrix.k8s-version }} \
+            -strict \
+            -ignore-missing-schemas \
+            -summary
 
-      - name: Render and validate with all features (K8s ${{ matrix.k8s-version }})
-        run: |
-          helm template test-release . \
-            --set web.autoscaling.enabled=true \
-            --set capture.autoscaling.enabled=true \
-            --set web.podDisruptionBudget.enabled=true \
-            --set networkPolicies.enabled=true \
-            --set metrics.enabled=true \
-            | kubeconform \
-              -kubernetes-version ${{ matrix.k8s-version }} \
-              -strict \
-              -ignore-missing-schemas \
-              -summary
+    - name: Render and validate with all features (K8s ${{ matrix.k8s-version }})
+      run: |
+        helm template test-release . \
+          --set web.autoscaling.enabled=true \
+          --set capture.autoscaling.enabled=true \
+          --set web.podDisruptionBudget.enabled=true \
+          --set networkPolicies.enabled=true \
+          --set metrics.enabled=true \
+          | kubeconform \
+            -kubernetes-version ${{ matrix.k8s-version }} \
+            -strict \
+            -ignore-missing-schemas \
+            -summary
 
   kube-score:
     name: Kube-score (Best Practices)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v4
-        with:
-          version: v3.17.0
+    - name: Set up Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: v3.17.0
 
-      - name: Install kube-score
-        run: |
-          curl -sSL https://github.com/zegl/kube-score/releases/download/v1.19.0/kube-score_1.19.0_linux_amd64.tar.gz \
-            | tar xz -C /usr/local/bin kube-score
+    - name: Install kube-score
+      run: |
+        curl -sSL https://github.com/zegl/kube-score/releases/download/v1.19.0/kube-score_1.19.0_linux_amd64.tar.gz \
+          | tar xz -C /usr/local/bin kube-score
 
-      - name: Render and score
-        run: |
-          helm template test-release . \
-            | kube-score score - \
-              --ignore-test container-ephemeral-storage-request-and-limit \
-              --ignore-test pod-networkpolicy \
-              || true
-        # kube-score is advisory — run as non-blocking for now
+    - name: Render and score
+      run: |
+        helm template test-release . \
+          | kube-score score - \
+            --ignore-test container-ephemeral-storage-request-and-limit \
+            --ignore-test pod-networkpolicy \
+            || true
+       # kube-score is advisory — run as non-blocking for now
 
   helm-docs:
     name: Helm-docs Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Install helm-docs
-        run: |
-          curl -sSL https://github.com/norwoodj/helm-docs/releases/download/v1.14.2/helm-docs_1.14.2_Linux_x86_64.tar.gz \
-            | tar xz -C /usr/local/bin helm-docs
+    - name: Install helm-docs
+      run: |
+        curl -sSL https://github.com/norwoodj/helm-docs/releases/download/v1.14.2/helm-docs_1.14.2_Linux_x86_64.tar.gz \
+          | tar xz -C /usr/local/bin helm-docs
 
-      - name: Check if README is up to date
-        run: |
-          # Only run if a README template exists
-          if [ -f README.md.gotmpl ]; then
-            helm-docs --dry-run --log-level error
-            diff <(helm-docs --dry-run --log-level error 2>/dev/null) README.md \
-              && echo "README.md is up to date" \
-              || (echo "README.md is out of date. Run 'helm-docs' to regenerate." && exit 1)
-          else
-            echo "No README.md.gotmpl found — skipping helm-docs check."
-            echo "To enable: create a README.md.gotmpl template and regenerate README.md with helm-docs."
-          fi
+    - name: Check if README is up to date
+      run: |
+        # Only run if a README template exists
+        if [ -f README.md.gotmpl ]; then
+          helm-docs --dry-run --log-level error
+          diff <(helm-docs --dry-run --log-level error 2>/dev/null) README.md \
+            && echo "README.md is up to date" \
+            || (echo "README.md is out of date. Run 'helm-docs' to regenerate." && exit 1)
+        else
+          echo "No README.md.gotmpl found — skipping helm-docs check."
+          echo "To enable: create a README.md.gotmpl template and regenerate README.md with helm-docs."
+        fi

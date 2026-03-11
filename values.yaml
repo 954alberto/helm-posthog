@@ -3,8 +3,8 @@
 ## ------------------------------------------------------------------
 
 ## Global overrides
-nameOverride: ""
-fullnameOverride: ""
+nameOverride: ''
+fullnameOverride: ''
 
 ## ------------------------------------------------------------------
 ## Global production settings
@@ -30,7 +30,7 @@ global:
     runAsNonRoot: true
     capabilities:
       drop:
-        - ALL
+      - ALL
 
   ## Default scheduling constraints applied to all pods unless overridden
   nodeSelector: {}
@@ -60,7 +60,7 @@ global:
 ## ------------------------------------------------------------------
 serviceAccount:
   create: true
-  name: ""
+  name: ''
   annotations: {}
   ## For IRSA (AWS), Workload Identity (GCP), etc.
   # annotations:
@@ -73,14 +73,14 @@ posthog:
   ## The image tag to use for PostHog app services (web, worker, temporal-django-worker)
   image:
     repository: posthog/posthog
-    tag: "latest"
+    tag: latest
     pullPolicy: IfNotPresent
   ## Django secret key (auto-generated if empty)
-  secret: ""
+  secret: ''
   ## Encryption salt (auto-generated if empty)
-  encryptionSaltKeys: ""
+  encryptionSaltKeys: ''
   ## Set to "true" to disable anonymous telemetry
-  optOutCapture: "false"
+  optOutCapture: 'false'
 
 ## ------------------------------------------------------------------
 ## Existing Secrets support
@@ -92,7 +92,7 @@ posthog:
 ##   object-storage-access-key, object-storage-secret-key,
 ##   seaweedfs-access-key, seaweedfs-secret-key, postgresql-password
 ## ------------------------------------------------------------------
-existingSecret: ""
+existingSecret: ''
 
 ## ------------------------------------------------------------------
 ## Ingress configuration
@@ -100,24 +100,24 @@ existingSecret: ""
 ingress:
   enabled: true
   ## The hostname PostHog will be served from
-  hostname: "posthog.example.com"
+  hostname: posthog.example.com
 
   ## NGINX Ingress
   nginx:
     enabled: true
-    className: "nginx"
+    className: nginx
     annotations: {}
     tls:
       enabled: true
-      secretName: ""  # leave empty to use default cluster issuer
+      secretName: ''  # leave empty to use default cluster issuer
 
   ## Traefik Ingress (alternative)
   traefik:
     enabled: false
     entryPoints:
-      - websecure
+    - websecure
     tls:
-      certResolver: ""  # e.g. "letsencrypt"
+      certResolver: ''  # e.g. "letsencrypt"
 
 ## ------------------------------------------------------------------
 ## PostgreSQL
@@ -127,7 +127,7 @@ postgresql:
   enabled: true
   image:
     repository: postgres
-    tag: "15.12-alpine"
+    tag: 15.12-alpine
   auth:
     username: posthog
     password: posthog
@@ -135,7 +135,7 @@ postgresql:
   persistence:
     enabled: true
     size: 20Gi
-    storageClass: ""
+    storageClass: ''
   resources:
     requests:
       cpu: 500m
@@ -159,7 +159,7 @@ postgresql:
 ## External PostgreSQL (used when postgresql.enabled=false)
 externalPostgresql:
   ## Full connection URL: postgres://user:pass@host:port/db
-  url: ""
+  url: ''
 
 ## ------------------------------------------------------------------
 ## ClickHouse
@@ -169,10 +169,10 @@ clickhouse:
   enabled: true
   image:
     repository: clickhouse/clickhouse-server
-    tag: "25.12.5.44"
+    tag: 25.12.5.44
   database: posthog
-  secure: "false"
-  verify: "false"
+  secure: 'false'
+  verify: 'false'
   apiUser: api
   apiPassword: apipass
   appUser: app
@@ -180,10 +180,10 @@ clickhouse:
   persistence:
     enabled: true
     size: 50Gi
-    storageClass: ""
+    storageClass: ''
   resources:
     requests:
-      cpu: "1"
+      cpu: '1'
       memory: 4Gi
     limits:
       memory: 8Gi
@@ -202,7 +202,7 @@ clickhouse:
 
 ## External ClickHouse (used when clickhouse.enabled=false)
 externalClickhouse:
-  host: ""
+  host: ''
   # apiUser, apiPassword, appUser, appPassword configured via clickhouse.* above
 
 ## ------------------------------------------------------------------
@@ -213,12 +213,12 @@ redis:
   enabled: true
   image:
     repository: redis
-    tag: "7.2-alpine"
-  maxmemory: "200mb"
+    tag: 7.2-alpine
+  maxmemory: 200mb
   persistence:
     enabled: true
     size: 5Gi
-    storageClass: ""
+    storageClass: ''
   resources:
     requests:
       cpu: 100m
@@ -241,7 +241,7 @@ redis:
 ## External Redis (used when redis.enabled=false)
 externalRedis:
   ## Full URL: redis://[:password@]host:port/
-  url: ""
+  url: ''
 
 ## ------------------------------------------------------------------
 ## Kafka (Redpanda)
@@ -251,13 +251,13 @@ kafka:
   enabled: true
   image:
     repository: docker.redpanda.com/redpandadata/redpanda
-    tag: "v25.1.9"
+    tag: v25.1.9
   persistence:
     enabled: true
     size: 20Gi
-    storageClass: ""
-  logRetentionMs: "3600000"
-  logRetentionHours: "1"
+    storageClass: ''
+  logRetentionMs: '3600000'
+  logRetentionHours: '1'
   resources:
     requests:
       cpu: 500m
@@ -279,7 +279,7 @@ kafka:
 
 ## External Kafka (used when kafka.enabled=false)
 externalKafka:
-  brokers: ""  # e.g. "kafka-1:9092,kafka-2:9092"
+  brokers: ''  # e.g. "kafka-1:9092,kafka-2:9092"
 
 ## ------------------------------------------------------------------
 ## ZooKeeper (for ClickHouse coordination)
@@ -288,11 +288,11 @@ zookeeper:
   enabled: true
   image:
     repository: zookeeper
-    tag: "3.7.0"
+    tag: 3.7.0
   persistence:
     enabled: true
     size: 5Gi
-    storageClass: ""
+    storageClass: ''
   resources:
     requests:
       cpu: 100m
@@ -320,13 +320,13 @@ minio:
   enabled: true
   image:
     repository: minio/minio
-    tag: "RELEASE.2025-04-22T22-12-26Z"
+    tag: RELEASE.2025-04-22T22-12-26Z
   accessKey: object_storage_root_user
   secretKey: object_storage_root_password
   persistence:
     enabled: true
     size: 20Gi
-    storageClass: ""
+    storageClass: ''
   resources:
     requests:
       cpu: 100m
@@ -349,13 +349,13 @@ minio:
 ## External object storage (used when minio.enabled=false)
 externalObjectStorage:
   ## S3-compatible endpoint: https://my-bucket.s3.amazonaws.com
-  endpoint: ""
-  accessKey: ""
-  secretKey: ""
+  endpoint: ''
+  accessKey: ''
+  secretKey: ''
 
 ## General object storage toggle
 objectStorage:
-  enabled: "true"
+  enabled: 'true'
 
 ## ------------------------------------------------------------------
 ## SeaweedFS (session recordings v2 storage)
@@ -365,13 +365,13 @@ seaweedfs:
   enabled: true
   image:
     repository: chrislusf/seaweedfs
-    tag: "4.03"
+    tag: '4.03'
   accessKey: any
   secretKey: any
   persistence:
     enabled: true
     size: 20Gi
-    storageClass: ""
+    storageClass: ''
   resources:
     requests:
       cpu: 100m
@@ -393,9 +393,9 @@ seaweedfs:
 
 ## External SeaweedFS / S3-compatible storage (used when seaweedfs.enabled=false)
 externalSeaweedfs:
-  endpoint: ""
-  accessKey: ""
-  secretKey: ""
+  endpoint: ''
+  accessKey: ''
+  secretKey: ''
 
 ## ------------------------------------------------------------------
 ## Elasticsearch (for Temporal)
@@ -404,7 +404,7 @@ elasticsearch:
   enabled: true
   image:
     repository: elasticsearch
-    tag: "7.17.28"
+    tag: 7.17.28
   resources:
     requests:
       cpu: 500m
@@ -414,7 +414,7 @@ elasticsearch:
   persistence:
     enabled: true
     size: 10Gi
-    storageClass: ""
+    storageClass: ''
   podSecurityContext:
     runAsNonRoot: true
     runAsUser: 1000
@@ -436,7 +436,7 @@ temporal:
   server:
     image:
       repository: temporalio/auto-setup
-      tag: "1.20.0"
+      tag: 1.20.0
     resources:
       requests:
         cpu: 250m
@@ -446,12 +446,12 @@ temporal:
   adminTools:
     image:
       repository: temporalio/admin-tools
-      tag: "1.20.0"
+      tag: 1.20.0
   ui:
     enabled: true
     image:
       repository: temporalio/ui
-      tag: "2.31.2"
+      tag: 2.31.2
     resources:
       requests:
         cpu: 50m
@@ -467,7 +467,7 @@ temporal:
 
 ## External Temporal (used when temporal.enabled=false)
 externalTemporal:
-  host: ""
+  host: ''
 
 ## ------------------------------------------------------------------
 ## PostHog Core Services
@@ -538,7 +538,7 @@ worker:
 plugins:
   image:
     repository: posthog/posthog-node
-    tag: "latest"
+    tag: latest
   replicas: 1
   resources:
     requests:
@@ -569,7 +569,7 @@ plugins:
 capture:
   image:
     repository: ghcr.io/posthog/posthog/capture
-    tag: "master"
+    tag: master
   replicas: 1
   resources:
     requests:
@@ -597,7 +597,7 @@ capture:
 replayCapture:
   image:
     repository: ghcr.io/posthog/posthog/capture
-    tag: "master"
+    tag: master
   replicas: 1
   resources:
     requests:
@@ -625,7 +625,7 @@ replayCapture:
 featureFlags:
   image:
     repository: ghcr.io/posthog/posthog/feature-flags
-    tag: "master"
+    tag: master
   replicas: 1
   resources:
     requests:
@@ -653,7 +653,7 @@ featureFlags:
 propertyDefsRs:
   image:
     repository: ghcr.io/posthog/posthog/property-defs-rs
-    tag: "master"
+    tag: master
   replicas: 1
   resources:
     requests:
@@ -672,7 +672,7 @@ propertyDefsRs:
 livestream:
   image:
     repository: ghcr.io/posthog/posthog/livestream
-    tag: "master"
+    tag: master
   replicas: 1
   resources:
     requests:
@@ -691,7 +691,7 @@ livestream:
 cymbal:
   image:
     repository: ghcr.io/posthog/posthog/cymbal
-    tag: "master"
+    tag: master
   replicas: 1
   resources:
     requests:
@@ -710,7 +710,7 @@ cymbal:
 cyclotronJanitor:
   image:
     repository: ghcr.io/posthog/posthog/cyclotron-janitor
-    tag: "master"
+    tag: master
   resources:
     requests:
       cpu: 50m
@@ -755,8 +755,8 @@ kafkaInit:
   ## Create required Kafka topics on install
   enabled: true
   topics:
-    - exceptions_ingestion
-    - clickhouse_events_json
+  - exceptions_ingestion
+  - clickhouse_events_json
 
 asyncMigrationsCheck:
   enabled: true
@@ -777,6 +777,6 @@ metrics:
     ## Additional labels for ServiceMonitor (e.g. release: kube-prometheus-stack)
     additionalLabels: {}
     ## Scrape interval
-    interval: "30s"
+    interval: 30s
     ## Scrape timeout
-    scrapeTimeout: "10s"
+    scrapeTimeout: 10s
