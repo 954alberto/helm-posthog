@@ -1,0 +1,172 @@
+{{- if .Values.ingress.enabled }}
+
+{{- if .Values.ingress.nginx.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "posthog.fullname" . }}
+  labels:
+    {{- include "posthog.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    {{- with .Values.ingress.nginx.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.nginx.className | quote }}
+  {{- if .Values.ingress.nginx.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.hostname | quote }}
+      {{- if .Values.ingress.nginx.tls.secretName }}
+      secretName: {{ .Values.ingress.nginx.tls.secretName | quote }}
+      {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.hostname | quote }}
+      http:
+        paths:
+          ## Event capture endpoints -> capture service
+          - path: /e(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "posthog.fullname" . }}-capture
+                port:
+                  number: 3000
+          - path: /i/v0(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "posthog.fullname" . }}-capture
+                port:
+                  number: 3000
+          - path: /batch(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "posthog.fullname" . }}-capture
+                port:
+                  number: 3000
+          - path: /capture(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "posthog.fullname" . }}-capture
+                port:
+                  number: 3000
+          ## Session recording endpoints -> replay-capture service
+          - path: /s(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "posthog.fullname" . }}-replay-capture
+                port:
+                  number: 3000
+          ## Feature flags endpoint -> feature-flags service
+          - path: /flags(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "posthog.fullname" . }}-feature-flags
+                port:
+                  number: 3001
+          ## Livestream endpoint -> livestream service
+          - path: /livestream(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "posthog.fullname" . }}-livestream
+                port:
+                  number: 8080
+          ## Public webhooks -> plugins service
+          - path: /public/webhooks(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "posthog.fullname" . }}-plugins
+                port:
+                  number: 6738
+          ## Object storage proxy
+          - path: /posthog(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                {{- if .Values.minio.enabled }}
+                name: {{ include "posthog.fullname" . }}-minio
+                port:
+                  number: 9000
+                {{- else }}
+                name: {{ include "posthog.fullname" . }}-web
+                port:
+                  number: 8000
+                {{- end }}
+          ## Default: everything else -> web service
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "posthog.fullname" . }}-web
+                port:
+                  number: 8000
+{{- end }}
+
+{{- if .Values.ingress.traefik.enabled }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ include "posthog.fullname" . }}
+  labels:
+    {{- include "posthog.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    {{- toYaml .Values.ingress.traefik.entryPoints | nindent 4 }}
+  routes:
+    ## Event capture
+    - match: "Host(`{{ .Values.ingress.hostname }}`) && (PathPrefix(`/e/`) || PathPrefix(`/i/v0/`) || PathPrefix(`/batch/`) || PathPrefix(`/capture/`))"
+      kind: Rule
+      services:
+        - name: {{ include "posthog.fullname" . }}-capture
+          port: 3000
+    ## Session recording
+    - match: "Host(`{{ .Values.ingress.hostname }}`) && PathPrefix(`/s/`)"
+      kind: Rule
+      services:
+        - name: {{ include "posthog.fullname" . }}-replay-capture
+          port: 3000
+    ## Feature flags
+    - match: "Host(`{{ .Values.ingress.hostname }}`) && PathPrefix(`/flags/`)"
+      kind: Rule
+      services:
+        - name: {{ include "posthog.fullname" . }}-feature-flags
+          port: 3001
+    ## Livestream
+    - match: "Host(`{{ .Values.ingress.hostname }}`) && PathPrefix(`/livestream/`)"
+      kind: Rule
+      services:
+        - name: {{ include "posthog.fullname" . }}-livestream
+          port: 8080
+    ## Public webhooks
+    - match: "Host(`{{ .Values.ingress.hostname }}`) && PathPrefix(`/public/webhooks/`)"
+      kind: Rule
+      services:
+        - name: {{ include "posthog.fullname" . }}-plugins
+          port: 6738
+    ## Default -> web
+    - match: "Host(`{{ .Values.ingress.hostname }}`)"
+      kind: Rule
+      services:
+        - name: {{ include "posthog.fullname" . }}-web
+          port: 8000
+  {{- if .Values.ingress.traefik.tls.certResolver }}
+  tls:
+    certResolver: {{ .Values.ingress.traefik.tls.certResolver | quote }}
+  {{- end }}
+{{- end }}
+
+{{- end }}

@@ -1,0 +1,151 @@
+## ------------------------------------------------------------------
+## Capture service (Rust - event ingestion)
+## ------------------------------------------------------------------
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "posthog.fullname" . }}-capture
+  labels:
+    {{- include "posthog.componentLabels" (dict "root" . "component" "capture") | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "capture") | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "posthog.fullname" . }}-capture
+  labels:
+    {{- include "posthog.componentLabels" (dict "root" . "component" "capture") | nindent 4 }}
+spec:
+  {{- if not .Values.capture.autoscaling.enabled }}
+  replicas: {{ .Values.capture.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "capture") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "capture") | nindent 8 }}
+      annotations:
+        {{- include "posthog.podAnnotations" (dict "root" . "component" "capture") | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "posthog.serviceAccountName" . }}
+      {{- include "posthog.imagePullSecrets" . | nindent 6 }}
+      {{- include "posthog.podSecurityContext" (dict "root" . "component" "capture") | nindent 6 }}
+      {{- include "posthog.nodeSelector" (dict "root" . "component" "capture") | nindent 6 }}
+      {{- include "posthog.tolerations" (dict "root" . "component" "capture") | nindent 6 }}
+      {{- include "posthog.affinity" (dict "root" . "component" "capture") | nindent 6 }}
+      {{- include "posthog.topologySpreadConstraints" (dict "root" . "component" "capture") | nindent 6 }}
+      containers:
+        - name: capture
+          image: "{{ .Values.capture.image.repository }}:{{ .Values.capture.image.tag }}"
+          {{- include "posthog.containerSecurityContext" (dict "root" . "component" "capture") | nindent 10 }}
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: CAPTURE_MODE
+              value: events
+            {{- include "posthog.commonEnv" . | nindent 12 }}
+            {{- with .Values.capture.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.capture.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /_readiness
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /_liveness
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+
+## ------------------------------------------------------------------
+## Replay Capture service (Rust - session recording ingestion)
+## ------------------------------------------------------------------
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "posthog.fullname" . }}-replay-capture
+  labels:
+    {{- include "posthog.componentLabels" (dict "root" . "component" "replay-capture") | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "replay-capture") | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "posthog.fullname" . }}-replay-capture
+  labels:
+    {{- include "posthog.componentLabels" (dict "root" . "component" "replay-capture") | nindent 4 }}
+spec:
+  {{- if not .Values.replayCapture.autoscaling.enabled }}
+  replicas: {{ .Values.replayCapture.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "replay-capture") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "replay-capture") | nindent 8 }}
+      annotations:
+        {{- include "posthog.podAnnotations" (dict "root" . "component" "replayCapture") | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "posthog.serviceAccountName" . }}
+      {{- include "posthog.imagePullSecrets" . | nindent 6 }}
+      {{- include "posthog.podSecurityContext" (dict "root" . "component" "replayCapture") | nindent 6 }}
+      {{- include "posthog.nodeSelector" (dict "root" . "component" "replayCapture") | nindent 6 }}
+      {{- include "posthog.tolerations" (dict "root" . "component" "replayCapture") | nindent 6 }}
+      {{- include "posthog.affinity" (dict "root" . "component" "replayCapture") | nindent 6 }}
+      {{- include "posthog.topologySpreadConstraints" (dict "root" . "component" "replay-capture") | nindent 6 }}
+      containers:
+        - name: replay-capture
+          image: "{{ .Values.replayCapture.image.repository }}:{{ .Values.replayCapture.image.tag }}"
+          {{- include "posthog.containerSecurityContext" (dict "root" . "component" "replayCapture") | nindent 10 }}
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: CAPTURE_MODE
+              value: recordings
+            {{- include "posthog.commonEnv" . | nindent 12 }}
+            {{- with .Values.replayCapture.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.replayCapture.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /_readiness
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /_liveness
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 15

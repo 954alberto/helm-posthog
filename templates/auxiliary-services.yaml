@@ -1,0 +1,244 @@
+## ------------------------------------------------------------------
+## Feature Flags service (Rust)
+## ------------------------------------------------------------------
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "posthog.fullname" . }}-feature-flags
+  labels:
+    {{- include "posthog.componentLabels" (dict "root" . "component" "feature-flags") | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3001
+      targetPort: 3001
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "feature-flags") | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "posthog.fullname" . }}-feature-flags
+  labels:
+    {{- include "posthog.componentLabels" (dict "root" . "component" "feature-flags") | nindent 4 }}
+spec:
+  {{- if not .Values.featureFlags.autoscaling.enabled }}
+  replicas: {{ .Values.featureFlags.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "feature-flags") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "feature-flags") | nindent 8 }}
+      annotations:
+        {{- include "posthog.podAnnotations" (dict "root" . "component" "featureFlags") | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "posthog.serviceAccountName" . }}
+      {{- include "posthog.imagePullSecrets" . | nindent 6 }}
+      {{- include "posthog.podSecurityContext" (dict "root" . "component" "featureFlags") | nindent 6 }}
+      {{- include "posthog.nodeSelector" (dict "root" . "component" "featureFlags") | nindent 6 }}
+      {{- include "posthog.tolerations" (dict "root" . "component" "featureFlags") | nindent 6 }}
+      {{- include "posthog.affinity" (dict "root" . "component" "featureFlags") | nindent 6 }}
+      {{- include "posthog.topologySpreadConstraints" (dict "root" . "component" "feature-flags") | nindent 6 }}
+      containers:
+        - name: feature-flags
+          image: "{{ .Values.featureFlags.image.repository }}:{{ .Values.featureFlags.image.tag }}"
+          {{- include "posthog.containerSecurityContext" (dict "root" . "component" "featureFlags") | nindent 10 }}
+          ports:
+            - containerPort: 3001
+              name: http
+          env:
+            {{- include "posthog.commonEnv" . | nindent 12 }}
+            {{- with .Values.featureFlags.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.featureFlags.resources | nindent 12 }}
+
+## ------------------------------------------------------------------
+## Property Definitions service (Rust)
+## ------------------------------------------------------------------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "posthog.fullname" . }}-property-defs-rs
+  labels:
+    {{- include "posthog.componentLabels" (dict "root" . "component" "property-defs-rs") | nindent 4 }}
+spec:
+  replicas: {{ .Values.propertyDefsRs.replicas }}
+  selector:
+    matchLabels:
+      {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "property-defs-rs") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "property-defs-rs") | nindent 8 }}
+      annotations:
+        {{- include "posthog.podAnnotations" (dict "root" . "component" "propertyDefsRs") | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "posthog.serviceAccountName" . }}
+      {{- include "posthog.imagePullSecrets" . | nindent 6 }}
+      {{- include "posthog.podSecurityContext" (dict "root" . "component" "propertyDefsRs") | nindent 6 }}
+      {{- include "posthog.nodeSelector" (dict "root" . "component" "propertyDefsRs") | nindent 6 }}
+      {{- include "posthog.tolerations" (dict "root" . "component" "propertyDefsRs") | nindent 6 }}
+      {{- include "posthog.affinity" (dict "root" . "component" "propertyDefsRs") | nindent 6 }}
+      {{- include "posthog.topologySpreadConstraints" (dict "root" . "component" "property-defs-rs") | nindent 6 }}
+      containers:
+        - name: property-defs-rs
+          image: "{{ .Values.propertyDefsRs.image.repository }}:{{ .Values.propertyDefsRs.image.tag }}"
+          {{- include "posthog.containerSecurityContext" (dict "root" . "component" "propertyDefsRs") | nindent 10 }}
+          env:
+            {{- include "posthog.commonEnv" . | nindent 12 }}
+            {{- with .Values.propertyDefsRs.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.propertyDefsRs.resources | nindent 12 }}
+
+## ------------------------------------------------------------------
+## Livestream service (Go - WebSocket)
+## ------------------------------------------------------------------
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "posthog.fullname" . }}-livestream
+  labels:
+    {{- include "posthog.componentLabels" (dict "root" . "component" "livestream") | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "livestream") | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "posthog.fullname" . }}-livestream
+  labels:
+    {{- include "posthog.componentLabels" (dict "root" . "component" "livestream") | nindent 4 }}
+spec:
+  replicas: {{ .Values.livestream.replicas }}
+  selector:
+    matchLabels:
+      {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "livestream") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "livestream") | nindent 8 }}
+      annotations:
+        {{- include "posthog.podAnnotations" (dict "root" . "component" "livestream") | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "posthog.serviceAccountName" . }}
+      {{- include "posthog.imagePullSecrets" . | nindent 6 }}
+      {{- include "posthog.podSecurityContext" (dict "root" . "component" "livestream") | nindent 6 }}
+      {{- include "posthog.nodeSelector" (dict "root" . "component" "livestream") | nindent 6 }}
+      {{- include "posthog.tolerations" (dict "root" . "component" "livestream") | nindent 6 }}
+      {{- include "posthog.affinity" (dict "root" . "component" "livestream") | nindent 6 }}
+      {{- include "posthog.topologySpreadConstraints" (dict "root" . "component" "livestream") | nindent 6 }}
+      containers:
+        - name: livestream
+          image: "{{ .Values.livestream.image.repository }}:{{ .Values.livestream.image.tag }}"
+          {{- include "posthog.containerSecurityContext" (dict "root" . "component" "livestream") | nindent 10 }}
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            {{- include "posthog.commonEnv" . | nindent 12 }}
+            {{- with .Values.livestream.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.livestream.resources | nindent 12 }}
+
+## ------------------------------------------------------------------
+## Cymbal service (error/exception processing)
+## ------------------------------------------------------------------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "posthog.fullname" . }}-cymbal
+  labels:
+    {{- include "posthog.componentLabels" (dict "root" . "component" "cymbal") | nindent 4 }}
+spec:
+  replicas: {{ .Values.cymbal.replicas }}
+  selector:
+    matchLabels:
+      {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "cymbal") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "cymbal") | nindent 8 }}
+      annotations:
+        {{- include "posthog.podAnnotations" (dict "root" . "component" "cymbal") | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "posthog.serviceAccountName" . }}
+      {{- include "posthog.imagePullSecrets" . | nindent 6 }}
+      {{- include "posthog.podSecurityContext" (dict "root" . "component" "cymbal") | nindent 6 }}
+      {{- include "posthog.nodeSelector" (dict "root" . "component" "cymbal") | nindent 6 }}
+      {{- include "posthog.tolerations" (dict "root" . "component" "cymbal") | nindent 6 }}
+      {{- include "posthog.affinity" (dict "root" . "component" "cymbal") | nindent 6 }}
+      {{- include "posthog.topologySpreadConstraints" (dict "root" . "component" "cymbal") | nindent 6 }}
+      containers:
+        - name: cymbal
+          image: "{{ .Values.cymbal.image.repository }}:{{ .Values.cymbal.image.tag }}"
+          {{- include "posthog.containerSecurityContext" (dict "root" . "component" "cymbal") | nindent 10 }}
+          env:
+            {{- include "posthog.commonEnv" . | nindent 12 }}
+            {{- with .Values.cymbal.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.cymbal.resources | nindent 12 }}
+
+## ------------------------------------------------------------------
+## Cyclotron Janitor (cleanup for Cyclotron job queue)
+## ------------------------------------------------------------------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "posthog.fullname" . }}-cyclotron-janitor
+  labels:
+    {{- include "posthog.componentLabels" (dict "root" . "component" "cyclotron-janitor") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "cyclotron-janitor") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "cyclotron-janitor") | nindent 8 }}
+      annotations:
+        {{- include "posthog.podAnnotations" (dict "root" . "component" "cyclotronJanitor") | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "posthog.serviceAccountName" . }}
+      {{- include "posthog.imagePullSecrets" . | nindent 6 }}
+      {{- include "posthog.podSecurityContext" (dict "root" . "component" "cyclotronJanitor") | nindent 6 }}
+      {{- include "posthog.nodeSelector" (dict "root" . "component" "cyclotronJanitor") | nindent 6 }}
+      {{- include "posthog.tolerations" (dict "root" . "component" "cyclotronJanitor") | nindent 6 }}
+      {{- include "posthog.affinity" (dict "root" . "component" "cyclotronJanitor") | nindent 6 }}
+      {{- include "posthog.topologySpreadConstraints" (dict "root" . "component" "cyclotron-janitor") | nindent 6 }}
+      containers:
+        - name: cyclotron-janitor
+          image: "{{ .Values.cyclotronJanitor.image.repository }}:{{ .Values.cyclotronJanitor.image.tag }}"
+          {{- include "posthog.containerSecurityContext" (dict "root" . "component" "cyclotronJanitor") | nindent 10 }}
+          env:
+            {{- include "posthog.commonEnv" . | nindent 12 }}
+            {{- with .Values.cyclotronJanitor.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.cyclotronJanitor.resources | nindent 12 }}
