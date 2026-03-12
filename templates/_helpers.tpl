@@ -34,6 +34,7 @@ Common labels
 {{- define "posthog.labels" -}}
 helm.sh/chart: {{ include "posthog.chart" . }}
 {{ include "posthog.selectorLabels" . }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 

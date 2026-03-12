@@ -84,6 +84,7 @@ redis:
 
 kafka:
   enabled: true
+  developerMode: true
   persistence:
     enabled: false
   resources:

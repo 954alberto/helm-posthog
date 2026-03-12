@@ -156,9 +156,6 @@ All configuration is done through `values.yaml`. See sections below for details.
 | `global.affinity` | Default affinity rules for all pods | `{}` |
 | `global.podAnnotations` | Default pod annotations for all pods | `{}` |
 | `global.extraEnv` | Extra env vars injected into all PostHog app containers | `[]` |
-| `global.extraVolumes` | Extra volumes for all PostHog app pods | `[]` |
-| `global.extraVolumeMounts` | Extra volume mounts for all PostHog app pods | `[]` |
-| `global.sidecarContainers` | Sidecar containers for all PostHog app pods | `[]` |
 
 ### ServiceAccount
 
@@ -183,7 +180,7 @@ When `existingSecret` is set, the chart will NOT create its own Secret. The refe
 |-----------|-------------|---------|
 | `posthog.image.repository` | PostHog app image repository | `posthog/posthog` |
 | `posthog.image.tag` | PostHog app image tag | `latest` |
-| `posthog.image.pullPolicy` | Image pull policy | `IfNotPresent` |
+| `posthog.image.pullPolicy` | Image pull policy | `Always` |
 | `posthog.secret` | Django secret key (auto-generated if empty) | `""` |
 | `posthog.encryptionSaltKeys` | Encryption salt keys (auto-generated if empty) | `""` |
 | `posthog.optOutCapture` | Disable anonymous telemetry | `"false"` |
@@ -417,7 +414,7 @@ Requires the prometheus-operator CRDs to be installed in the cluster.
 |-----------|-------------|---------|
 | `migrate.enabled` | Run Django migrations on install/upgrade | `true` |
 | `kafkaInit.enabled` | Create required Kafka topics on install | `true` |
-| `kafkaInit.topics` | List of Kafka topics to create | `[exceptions_ingestion, clickhouse_events_json]` |
+| `kafkaInit.topics` | List of Kafka topics to create | See values.yaml (11 topics) |
 | `asyncMigrationsCheck.enabled` | Run async migrations check on install/upgrade | `true` |
 
 ## Production Deployment Example
@@ -540,17 +537,19 @@ externalSeaweedfs:
 
 ## Ingress Routing
 
-The ingress is configured with path-based routing that mirrors the original Caddy reverse proxy from the Docker Compose deployment:
+The ingress is configured with path-based routing that mirrors the original Caddy reverse proxy from the Docker Compose deployment. WebSocket upgrade headers are included for the livestream service.
 
-| Path Pattern | Backend Service | Port |
-|-------------|-----------------|------|
-| `/e/*`, `/i/v0/*`, `/batch/*`, `/capture/*` | capture | 3000 |
-| `/s/*` | replay-capture | 3000 |
-| `/flags/*` | feature-flags | 3001 |
-| `/livestream/*` | livestream | 8080 |
-| `/public/webhooks/*` | plugins | 6738 |
-| `/posthog/*` | minio (or web fallback) | 9000 |
-| `/*` (default) | web | 8000 |
+| Path Pattern | Backend Service | Port | Notes |
+|-------------|-----------------|------|-------|
+| `/e/*`, `/i/v0/*`, `/batch/*`, `/capture/*` | capture | 3000 | Event capture |
+| `/s/*` | replay-capture | 3000 | Session recording |
+| `/flags/*` | feature-flags | 3001 | Feature flag evaluation |
+| `/livestream/*` | livestream | 8080 | WebSocket |
+| `/public/webhooks/*` | plugins | 6738 | CDP webhooks |
+| `/posthog/*` | minio (or web fallback) | 9000 | Object storage proxy |
+| `/*` (default) | web | 8000 | Django app |
+
+Ingress paths for optional services (capture, replay-capture, feature-flags, livestream, plugins) are automatically excluded when the corresponding service is disabled.
 
 ## Resource Requirements
 
@@ -594,7 +593,7 @@ kubectl delete pvc -l app.kubernetes.io/instance=posthog
 ```
 charts/posthog/
   Chart.yaml                          # Chart metadata
-  values.yaml                         # Default configuration values (~780 lines)
+  values.yaml                         # Default configuration values (~830 lines)
   README.md                           # This file
   templates/
     _helpers.tpl                      # Template helpers (labels, env vars, security contexts, scheduling)

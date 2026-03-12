@@ -49,6 +49,7 @@ spec:
       containers:
         - name: feature-flags
           image: "{{ .Values.featureFlags.image.repository }}:{{ .Values.featureFlags.image.tag }}"
+          imagePullPolicy: {{ .Values.featureFlags.image.pullPolicy | default "Always" }}
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "featureFlags") | nindent 10 }}
           ports:
             - containerPort: 3001
@@ -146,6 +147,7 @@ spec:
       containers:
         - name: property-defs-rs
           image: "{{ .Values.propertyDefsRs.image.repository }}:{{ .Values.propertyDefsRs.image.tag }}"
+          imagePullPolicy: {{ .Values.propertyDefsRs.image.pullPolicy | default "Always" }}
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "propertyDefsRs") | nindent 10 }}
           env:
             {{- include "posthog.commonEnv" . | nindent 12 }}
@@ -154,6 +156,14 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.propertyDefsRs.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "test -d /proc/1"
+            initialDelaySeconds: 30
+            periodSeconds: 30
 {{- end }}
 
 {{- if .Values.livestream.enabled }}
@@ -205,6 +215,7 @@ spec:
       containers:
         - name: livestream
           image: "{{ .Values.livestream.image.repository }}:{{ .Values.livestream.image.tag }}"
+          imagePullPolicy: {{ .Values.livestream.image.pullPolicy | default "Always" }}
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "livestream") | nindent 10 }}
           ports:
             - containerPort: 8080
@@ -233,6 +244,18 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.livestream.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15
 {{- end }}
 
 {{- if .Values.cymbal.enabled }}
@@ -268,6 +291,7 @@ spec:
       containers:
         - name: cymbal
           image: "{{ .Values.cymbal.image.repository }}:{{ .Values.cymbal.image.tag }}"
+          imagePullPolicy: {{ .Values.cymbal.image.pullPolicy | default "Always" }}
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "cymbal") | nindent 10 }}
           env:
             - name: BIND_HOST
@@ -310,6 +334,14 @@ spec:
               mountPath: {{ dir (((.Values.cymbal.geoip).dbPath) | default "/share/GeoLite2-City.mmdb") }}
               readOnly: true
           {{- end }}
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "test -d /proc/1"
+            initialDelaySeconds: 30
+            periodSeconds: 30
       {{- if ((.Values.cymbal.geoip).volumeMount) }}
       volumes:
         - name: geoip-db
@@ -350,6 +382,7 @@ spec:
       containers:
         - name: cyclotron-janitor
           image: "{{ .Values.cyclotronJanitor.image.repository }}:{{ .Values.cyclotronJanitor.image.tag }}"
+          imagePullPolicy: {{ .Values.cyclotronJanitor.image.pullPolicy | default "Always" }}
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "cyclotronJanitor") | nindent 10 }}
           env:
             {{- include "posthog.commonEnv" . | nindent 12 }}
@@ -358,4 +391,12 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.cyclotronJanitor.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "test -d /proc/1"
+            initialDelaySeconds: 30
+            periodSeconds: 30
 {{- end }}

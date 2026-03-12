@@ -163,6 +163,7 @@ spec:
       containers:
         - name: temporal-django-worker
           image: "{{ .Values.posthog.image.repository }}:{{ .Values.posthog.image.tag }}"
+          imagePullPolicy: {{ .Values.posthog.image.pullPolicy | default "Always" }}
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "temporalDjangoWorker") | nindent 10 }}
           command:
             - python
@@ -175,4 +176,12 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.temporalDjangoWorker.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import os; os.path.exists('/proc/1')"
+            initialDelaySeconds: 60
+            periodSeconds: 30
 {{- end }}

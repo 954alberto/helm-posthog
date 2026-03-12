@@ -40,20 +40,10 @@ global:
   ## Default pod annotations applied to all pods unless overridden
   podAnnotations: {}
 
-  ## Default pod labels applied to all pods (in addition to standard labels)
-  podLabels: {}
-
   ## Extra environment variables injected into all PostHog app containers
   extraEnv: []
   # - name: MY_VAR
   #   value: "my-value"
-
-  ## Extra volumes and volume mounts for all PostHog app pods
-  extraVolumes: []
-  extraVolumeMounts: []
-
-  ## Sidecar containers added to all PostHog app pods
-  sidecarContainers: []
 
 ## ------------------------------------------------------------------
 ## ServiceAccount
@@ -71,10 +61,12 @@ serviceAccount:
 ## ------------------------------------------------------------------
 posthog:
   ## The image tag to use for PostHog app services (web, worker, temporal-django-worker)
+  ## PostHog does not publish versioned Docker tags — they use continuous deployment.
+  ## "latest" tracks the main branch. Set pullPolicy: Always to pick up new versions.
   image:
     repository: posthog/posthog
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   ## Django secret key (auto-generated if empty)
   secret: ''
   ## Encryption salt (auto-generated if empty)
@@ -160,6 +152,9 @@ postgresql:
 externalPostgresql:
   ## Full connection URL: postgres://user:pass@host:port/db
   url: ''
+  ## Password for external PostgreSQL (used by Temporal and other consumers
+  ## that need the password separately from the full URL)
+  password: ''
 
 ## ------------------------------------------------------------------
 ## ClickHouse
@@ -171,8 +166,8 @@ clickhouse:
     repository: clickhouse/clickhouse-server
     tag: 25.12.5.44
   database: posthog
-  secure: 'false'
-  verify: 'false'
+  secure: false
+  verify: false
   apiUser: api
   apiPassword: apipass
   appUser: app
@@ -252,6 +247,9 @@ kafka:
   image:
     repository: docker.redpanda.com/redpandadata/redpanda
     tag: v25.1.9
+  ## Enable developer mode (disables fsync, reduces durability guarantees).
+  ## Only set to true for local/CI environments — NEVER in production.
+  developerMode: false
   persistence:
     enabled: true
     size: 20Gi
@@ -355,7 +353,7 @@ externalObjectStorage:
 
 ## General object storage toggle
 objectStorage:
-  enabled: 'true'
+  enabled: true
 
 ## ------------------------------------------------------------------
 ## SeaweedFS (session recordings v2 storage)
@@ -542,6 +540,7 @@ plugins:
   image:
     repository: posthog/posthog-node
     tag: latest
+    pullPolicy: Always
   replicas: 1
   resources:
     requests:
@@ -574,6 +573,7 @@ capture:
   image:
     repository: ghcr.io/posthog/posthog/capture
     tag: master
+    pullPolicy: Always
   replicas: 1
   resources:
     requests:
@@ -614,6 +614,7 @@ replayCapture:
   image:
     repository: ghcr.io/posthog/posthog/capture
     tag: master
+    pullPolicy: Always
   replicas: 1
   resources:
     requests:
@@ -643,6 +644,7 @@ featureFlags:
   image:
     repository: ghcr.io/posthog/posthog/feature-flags
     tag: master
+    pullPolicy: Always
   replicas: 1
   resources:
     requests:
@@ -672,6 +674,7 @@ propertyDefsRs:
   image:
     repository: ghcr.io/posthog/posthog/property-defs-rs
     tag: master
+    pullPolicy: Always
   replicas: 1
   resources:
     requests:
@@ -692,6 +695,7 @@ livestream:
   image:
     repository: ghcr.io/posthog/posthog/livestream
     tag: master
+    pullPolicy: Always
   replicas: 1
   resources:
     requests:
@@ -712,6 +716,7 @@ cymbal:
   image:
     repository: ghcr.io/posthog/posthog/cymbal
     tag: master
+    pullPolicy: Always
   replicas: 1
   resources:
     requests:
@@ -743,6 +748,7 @@ cyclotronJanitor:
   image:
     repository: ghcr.io/posthog/posthog/cyclotron-janitor
     tag: master
+    pullPolicy: Always
   resources:
     requests:
       cpu: 50m

@@ -29,6 +29,11 @@ spec:
   {{- if not .Values.web.autoscaling.enabled }}
   replicas: {{ .Values.web.replicas }}
   {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       {{- include "posthog.componentSelectorLabels" (dict "root" . "component" "web") | nindent 6 }}
@@ -51,6 +56,7 @@ spec:
         {{- if .Values.migrate.enabled }}
         - name: wait-for-db
           image: "{{ .Values.posthog.image.repository }}:{{ .Values.posthog.image.tag }}"
+          imagePullPolicy: {{ .Values.posthog.image.pullPolicy | default "Always" }}
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "web") | nindent 10 }}
           command:
             - python
@@ -74,6 +80,7 @@ spec:
             {{- include "posthog.commonEnv" . | nindent 12 }}
         - name: migrate
           image: "{{ .Values.posthog.image.repository }}:{{ .Values.posthog.image.tag }}"
+          imagePullPolicy: {{ .Values.posthog.image.pullPolicy | default "Always" }}
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "web") | nindent 10 }}
           command:
             - python
@@ -86,6 +93,7 @@ spec:
       containers:
         - name: web
           image: "{{ .Values.posthog.image.repository }}:{{ .Values.posthog.image.tag }}"
+          imagePullPolicy: {{ .Values.posthog.image.pullPolicy | default "Always" }}
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "web") | nindent 10 }}
           {{- if .Values.web.granian.enabled }}
           command:
@@ -182,9 +190,11 @@ spec:
       {{- include "posthog.tolerations" (dict "root" . "component" "worker") | nindent 6 }}
       {{- include "posthog.affinity" (dict "root" . "component" "worker") | nindent 6 }}
       {{- include "posthog.topologySpreadConstraints" (dict "root" . "component" "worker") | nindent 6 }}
+      terminationGracePeriodSeconds: 300
       initContainers:
         - name: wait-for-migrations
           image: "{{ .Values.posthog.image.repository }}:{{ .Values.posthog.image.tag }}"
+          imagePullPolicy: {{ .Values.posthog.image.pullPolicy | default "Always" }}
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "worker") | nindent 10 }}
           command:
             - python
@@ -223,6 +233,7 @@ spec:
       containers:
         - name: worker
           image: "{{ .Values.posthog.image.repository }}:{{ .Values.posthog.image.tag }}"
+          imagePullPolicy: {{ .Values.posthog.image.pullPolicy | default "Always" }}
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "worker") | nindent 10 }}
           command:
             - ./bin/docker-worker-celery
@@ -238,6 +249,25 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import os, time; st = os.stat('/tmp/celery-heartbeat'); assert time.time() - st.st_mtime < 120, 'Heartbeat stale'"
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          startupProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import os; assert os.path.exists('/tmp/celery-heartbeat'), 'No heartbeat file yet'"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30
         {{- with .Values.worker.sidecarContainers }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -295,9 +325,11 @@ spec:
       {{- include "posthog.tolerations" (dict "root" . "component" "plugins") | nindent 6 }}
       {{- include "posthog.affinity" (dict "root" . "component" "plugins") | nindent 6 }}
       {{- include "posthog.topologySpreadConstraints" (dict "root" . "component" "plugins") | nindent 6 }}
+      terminationGracePeriodSeconds: 60
       containers:
         - name: plugins
           image: "{{ .Values.plugins.image.repository }}:{{ .Values.plugins.image.tag }}"
+          imagePullPolicy: {{ .Values.plugins.image.pullPolicy | default "Always" }}
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "plugins") | nindent 10 }}
           ports:
             - containerPort: 6738

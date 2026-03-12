@@ -49,6 +49,7 @@ spec:
       containers:
         - name: capture
           image: "{{ .Values.capture.image.repository }}:{{ .Values.capture.image.tag }}"
+          imagePullPolicy: {{ .Values.capture.image.pullPolicy | default "Always" }}
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "capture") | nindent 10 }}
           ports:
             - containerPort: 3000
@@ -131,6 +132,7 @@ spec:
       containers:
         - name: replay-capture
           image: "{{ .Values.replayCapture.image.repository }}:{{ .Values.replayCapture.image.tag }}"
+          imagePullPolicy: {{ .Values.replayCapture.image.pullPolicy | default "Always" }}
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "replayCapture") | nindent 10 }}
           ports:
             - containerPort: 3000

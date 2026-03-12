@@ -13,6 +13,10 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
     {{- with .Values.ingress.nginx.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -30,6 +34,7 @@ spec:
     - host: {{ .Values.ingress.hostname | quote }}
       http:
         paths:
+          {{- if .Values.capture.enabled }}
           ## Event capture endpoints -> capture service
           - path: /e(/|$)(.*)
             pathType: ImplementationSpecific
@@ -59,6 +64,8 @@ spec:
                 name: {{ include "posthog.fullname" . }}-capture
                 port:
                   number: 3000
+          {{- end }}
+          {{- if .Values.replayCapture.enabled }}
           ## Session recording endpoints -> replay-capture service
           - path: /s(/|$)(.*)
             pathType: ImplementationSpecific
@@ -67,6 +74,8 @@ spec:
                 name: {{ include "posthog.fullname" . }}-replay-capture
                 port:
                   number: 3000
+          {{- end }}
+          {{- if .Values.featureFlags.enabled }}
           ## Feature flags endpoint -> feature-flags service
           - path: /flags(/|$)(.*)
             pathType: ImplementationSpecific
@@ -75,7 +84,9 @@ spec:
                 name: {{ include "posthog.fullname" . }}-feature-flags
                 port:
                   number: 3001
-          ## Livestream endpoint -> livestream service
+          {{- end }}
+          {{- if .Values.livestream.enabled }}
+          ## Livestream endpoint -> livestream service (WebSocket)
           - path: /livestream(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
@@ -83,6 +94,8 @@ spec:
                 name: {{ include "posthog.fullname" . }}-livestream
                 port:
                   number: 8080
+          {{- end }}
+          {{- if .Values.plugins.enabled }}
           ## Public webhooks -> plugins service
           - path: /public/webhooks(/|$)(.*)
             pathType: ImplementationSpecific
@@ -91,6 +104,7 @@ spec:
                 name: {{ include "posthog.fullname" . }}-plugins
                 port:
                   number: 6738
+          {{- end }}
           ## Object storage proxy
           - path: /posthog(/|$)(.*)
             pathType: ImplementationSpecific
