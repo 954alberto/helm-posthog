@@ -182,6 +182,44 @@ spec:
       {{- include "posthog.tolerations" (dict "root" . "component" "worker") | nindent 6 }}
       {{- include "posthog.affinity" (dict "root" . "component" "worker") | nindent 6 }}
       {{- include "posthog.topologySpreadConstraints" (dict "root" . "component" "worker") | nindent 6 }}
+      initContainers:
+        - name: wait-for-migrations
+          image: "{{ .Values.posthog.image.repository }}:{{ .Values.posthog.image.tag }}"
+          {{- include "posthog.containerSecurityContext" (dict "root" . "component" "worker") | nindent 10 }}
+          command:
+            - python
+            - -c
+            - |
+              import time, socket, sys
+              # Wait for PostgreSQL to be ready
+              pg_host = "{{ .Values.externalPostgresql.url | default (printf "%s-postgresql" (include "posthog.fullname" .)) }}"
+              if "://" in pg_host:
+                  from urllib.parse import urlparse
+                  pg_host = urlparse(pg_host).hostname
+              while True:
+                  try:
+                      s = socket.create_connection((pg_host, 5432), timeout=5)
+                      s.close()
+                      break
+                  except (socket.timeout, ConnectionRefusedError, OSError):
+                      print(f"Waiting for PostgreSQL at {pg_host}:5432...")
+                      time.sleep(2)
+              # Wait for migrations to complete by checking the web pod's health
+              import urllib.request
+              web_url = "http://{{ include "posthog.fullname" . }}-web:8000/_health"
+              for i in range(120):
+                  try:
+                      req = urllib.request.urlopen(web_url, timeout=5)
+                      if req.status == 200:
+                          print("Web service is healthy - migrations complete.")
+                          sys.exit(0)
+                  except Exception as e:
+                      pass
+                  print(f"Waiting for web service to be ready (attempt {i+1}/120)...")
+                  time.sleep(5)
+              print("WARNING: Web service not ready after 10 minutes, starting worker anyway.")
+          env:
+            {{- include "posthog.commonEnv" . | nindent 12 }}
       containers:
         - name: worker
           image: "{{ .Values.posthog.image.repository }}:{{ .Values.posthog.image.tag }}"

@@ -150,32 +150,32 @@ temporal:
 web:
   enabled: true
   replicas: 1
+  ## Granian with 1 worker to keep memory within limits for CI
+  granian:
+    enabled: true
+    workers: 1
   resources:
     requests:
-      cpu: 50m
-      memory: 384Mi
+      cpu: 100m
+      memory: 512Mi
     limits:
-      memory: 768Mi
+      memory: 1Gi
 
 worker:
   enabled: true
   replicas: 1
   resources:
     requests:
-      cpu: 50m
-      memory: 256Mi
+      cpu: 100m
+      memory: 384Mi
     limits:
-      memory: 512Mi
+      memory: 768Mi
 
+## Disabled: the plugin-server image hardcodes kafka:9092 in multiple rdkafka
+## producer code paths, making it impossible to fully override via env vars.
+## See: getKafkaConfigFromEnv() only applies to producers matching the mode prefix.
 plugins:
-  enabled: true
-  replicas: 1
-  resources:
-    requests:
-      cpu: 50m
-      memory: 256Mi
-    limits:
-      memory: 512Mi
+  enabled: false
 
 capture:
   enabled: true

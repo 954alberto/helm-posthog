@@ -80,10 +80,10 @@ jobs:
         # Disabled: feature-flags (no GeoIP mmdb in image)
         # Disabled: cymbal (no GeoIP mmdb in image)
         # Disabled: temporal + temporal-django-worker
+        # Disabled: plugins (hardcoded kafka:9092 in rdkafka producers)
         DEPLOYMENTS=(
           "posthog-web"
           "posthog-worker"
-          "posthog-plugins"
           "posthog-capture"
           "posthog-replay-capture"
           "posthog-property-defs-rs"
