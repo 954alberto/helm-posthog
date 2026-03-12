@@ -54,7 +54,7 @@ jobs:
 
         echo "==> Waiting for ZooKeeper..."
         kubectl rollout status statefulset/posthog-zookeeper \
-          -n posthog --timeout=120s
+          -n posthog --timeout=240s
 
         echo "==> Waiting for Kafka..."
         kubectl rollout status statefulset/posthog-kafka \

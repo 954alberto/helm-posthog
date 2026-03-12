@@ -48,6 +48,8 @@ spec:
           ports:
             - containerPort: 2181
               name: client
+            - containerPort: 8080
+              name: admin
           env:
             - name: ZOO_MY_ID
               value: "1"
@@ -57,21 +59,20 @@ spec:
           resources:
             {{- toYaml .Values.zookeeper.resources | nindent 12 }}
           readinessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - echo ruok | nc localhost 2181 | grep imok
+            httpGet:
+              path: /commands/ruok
+              port: 8080
             initialDelaySeconds: 10
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           livenessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - echo ruok | nc localhost 2181 | grep imok
-            initialDelaySeconds: 30
+            tcpSocket:
+              port: 2181
+            initialDelaySeconds: 60
             periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
   {{- if .Values.zookeeper.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:
