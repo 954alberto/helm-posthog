@@ -755,8 +755,17 @@ kafkaInit:
   ## Create required Kafka topics on install
   enabled: true
   topics:
-  - exceptions_ingestion
   - clickhouse_events_json
+  - events_plugin_ingestion
+  - events_plugin_ingestion_overflow
+  - events_plugin_ingestion_historical
+  - exceptions_ingestion
+  - session_recording_snapshot_item_events
+  - session_recording_snapshot_item_overflow
+  - clickhouse_app_metrics2
+  - heatmaps_ingestion
+  - logs_ingestion
+  - error_tracking_events
 
 asyncMigrationsCheck:
   enabled: true

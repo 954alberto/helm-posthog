@@ -53,8 +53,12 @@ spec:
             - containerPort: 3000
               name: http
           env:
+            - name: ADDRESS
+              value: "0.0.0.0:3000"
             - name: CAPTURE_MODE
               value: events
+            - name: KAFKA_TOPIC
+              value: "events_plugin_ingestion"
             {{- include "posthog.commonEnv" . | nindent 12 }}
             {{- with .Values.capture.extraEnv }}
             {{- toYaml . | nindent 12 }}
@@ -129,8 +133,12 @@ spec:
             - containerPort: 3000
               name: http
           env:
+            - name: ADDRESS
+              value: "0.0.0.0:3000"
             - name: CAPTURE_MODE
               value: recordings
+            - name: KAFKA_TOPIC
+              value: "session_recording_snapshot_item_events"
             {{- include "posthog.commonEnv" . | nindent 12 }}
             {{- with .Values.replayCapture.extraEnv }}
             {{- toYaml . | nindent 12 }}

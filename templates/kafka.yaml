@@ -55,6 +55,8 @@ spec:
             - --node-id=0
             - --kafka-addr=PLAINTEXT://0.0.0.0:9092
             - --advertise-kafka-addr=PLAINTEXT://{{ include "posthog.fullname" . }}-kafka:9092
+            - --mode=dev-container
+            - --set=redpanda.auto_create_topics_enabled=true
           ports:
             - containerPort: 9092
               name: kafka

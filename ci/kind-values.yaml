@@ -152,9 +152,9 @@ web:
   resources:
     requests:
       cpu: 50m
-      memory: 256Mi
+      memory: 384Mi
     limits:
-      memory: 512Mi
+      memory: 768Mi
 
 worker:
   replicas: 1
@@ -245,10 +245,11 @@ temporalDjangoWorker:
     limits:
       memory: 256Mi
 
-## Disable init jobs that require running services to already exist
+## Enable migrations (runs as initContainer in web pod)
 migrate:
-  enabled: false
+  enabled: true
+## Enable Kafka topic creation (Helm post-install hook)
 kafkaInit:
-  enabled: false
+  enabled: true
 asyncMigrationsCheck:
   enabled: false

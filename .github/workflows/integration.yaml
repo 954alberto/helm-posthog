@@ -13,7 +13,7 @@ jobs:
   kind:
     name: Deploy to Kind
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
     - uses: actions/checkout@v4
 
@@ -39,7 +39,7 @@ jobs:
           -f ci/kind-values.yaml \
           --namespace posthog \
           --create-namespace \
-          --timeout 5m \
+          --timeout 10m \
           --wait=false
 
     - name: Wait for infrastructure StatefulSets

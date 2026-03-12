@@ -53,12 +53,52 @@ spec:
             - containerPort: 3001
               name: http
           env:
+            - name: ADDRESS
+              value: "0.0.0.0:3001"
+            - name: WRITE_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "posthog.secretName" . }}
+                  key: database-url
+            - name: READ_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "posthog.secretName" . }}
+                  key: database-url
+            - name: PERSONS_WRITE_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "posthog.secretName" . }}
+                  key: database-url
+            - name: PERSONS_READ_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "posthog.secretName" . }}
+                  key: database-url
+            - name: MAXMIND_DB_PATH
+              value: ""
+            - name: COOKIELESS_REDIS_HOST
+              value: {{ .Values.externalRedis.url | default (printf "%s-redis" (include "posthog.fullname" .)) | quote }}
+            - name: COOKIELESS_REDIS_PORT
+              value: "6379"
             {{- include "posthog.commonEnv" . | nindent 12 }}
             {{- with .Values.featureFlags.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
           resources:
             {{- toYaml .Values.featureFlags.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /_readiness
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /_readiness
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 15
 
 ## ------------------------------------------------------------------
 ## Property Definitions service (Rust)
@@ -212,6 +252,28 @@ spec:
           image: "{{ .Values.cymbal.image.repository }}:{{ .Values.cymbal.image.tag }}"
           {{- include "posthog.containerSecurityContext" (dict "root" . "component" "cymbal") | nindent 10 }}
           env:
+            - name: BIND_HOST
+              value: "0.0.0.0"
+            - name: BIND_PORT
+              value: "3302"
+            - name: KAFKA_CONSUMER_GROUP
+              value: "cymbal"
+            - name: KAFKA_CONSUMER_TOPIC
+              value: "exceptions_ingestion"
+            - name: PERSONS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "posthog.secretName" . }}
+                  key: database-url
+            - name: MAXMIND_DB_PATH
+              value: ""
+            - name: ISSUE_BUCKETS_REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "posthog.secretName" . }}
+                  key: redis-url
+            - name: RUST_LOG
+              value: "info"
             {{- include "posthog.commonEnv" . | nindent 12 }}
             {{- with .Values.cymbal.extraEnv }}
             {{- toYaml . | nindent 12 }}

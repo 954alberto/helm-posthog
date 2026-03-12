@@ -251,6 +251,25 @@ spec:
               name: http
           env:
             {{- include "posthog.commonEnv" . | nindent 12 }}
+            {{- $redisHost := .Values.externalRedis.url | default (printf "%s-redis" (include "posthog.fullname" .)) }}
+            - name: SESSION_RECORDING_API_REDIS_HOST
+              value: {{ $redisHost | quote }}
+            - name: SESSION_RECORDING_API_REDIS_PORT
+              value: "6379"
+            - name: CDP_REDIS_HOST
+              value: {{ $redisHost | quote }}
+            - name: CDP_REDIS_PORT
+              value: "6379"
+            - name: LOGS_REDIS_HOST
+              value: {{ $redisHost | quote }}
+            - name: LOGS_REDIS_PORT
+              value: "6379"
+            - name: LOGS_REDIS_TLS
+              value: "false"
+            - name: COOKIELESS_REDIS_HOST
+              value: {{ $redisHost | quote }}
+            - name: COOKIELESS_REDIS_PORT
+              value: "6379"
             {{- with .Values.plugins.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
