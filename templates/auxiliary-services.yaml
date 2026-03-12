@@ -1,3 +1,4 @@
+{{- if .Values.featureFlags.enabled }}
 ## ------------------------------------------------------------------
 ## Feature Flags service (Rust)
 ## ------------------------------------------------------------------
@@ -76,7 +77,7 @@ spec:
                   name: {{ include "posthog.secretName" . }}
                   key: database-url
             - name: MAXMIND_DB_PATH
-              value: "/share/GeoLite2-City.mmdb"
+              value: {{ ((.Values.featureFlags.geoip).dbPath) | default "/share/GeoLite2-City.mmdb" | quote }}
             - name: COOKIELESS_REDIS_HOST
               value: {{ .Values.externalRedis.url | default (printf "%s-redis" (include "posthog.fullname" .)) | quote }}
             - name: COOKIELESS_REDIS_PORT
@@ -87,6 +88,12 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.featureFlags.resources | nindent 12 }}
+          {{- if ((.Values.featureFlags.geoip).volumeMount) }}
+          volumeMounts:
+            - name: geoip-db
+              mountPath: {{ dir (((.Values.featureFlags.geoip).dbPath) | default "/share/GeoLite2-City.mmdb") }}
+              readOnly: true
+          {{- end }}
           readinessProbe:
             httpGet:
               path: /_readiness
@@ -99,7 +106,14 @@ spec:
               port: 3001
             initialDelaySeconds: 30
             periodSeconds: 15
+      {{- if ((.Values.featureFlags.geoip).volumeMount) }}
+      volumes:
+        - name: geoip-db
+          {{- toYaml .Values.featureFlags.geoip.volumeMount | nindent 10 }}
+      {{- end }}
+{{- end }}
 
+{{- if .Values.propertyDefsRs.enabled }}
 ## ------------------------------------------------------------------
 ## Property Definitions service (Rust)
 ## ------------------------------------------------------------------
@@ -140,7 +154,9 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.propertyDefsRs.resources | nindent 12 }}
+{{- end }}
 
+{{- if .Values.livestream.enabled }}
 ## ------------------------------------------------------------------
 ## Livestream service (Go - WebSocket)
 ## ------------------------------------------------------------------
@@ -217,7 +233,9 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.livestream.resources | nindent 12 }}
+{{- end }}
 
+{{- if .Values.cymbal.enabled }}
 ## ------------------------------------------------------------------
 ## Cymbal service (error/exception processing)
 ## ------------------------------------------------------------------
@@ -266,7 +284,7 @@ spec:
                   name: {{ include "posthog.secretName" . }}
                   key: database-url
             - name: MAXMIND_DB_PATH
-              value: "/share/GeoLite2-City.mmdb"
+              value: {{ ((.Values.cymbal.geoip).dbPath) | default "/share/GeoLite2-City.mmdb" | quote }}
             - name: OBJECT_STORAGE_BUCKET
               value: "symbol-sets"
             - name: OBJECT_STORAGE_FORCE_PATH_STYLE
@@ -286,7 +304,20 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.cymbal.resources | nindent 12 }}
+          {{- if ((.Values.cymbal.geoip).volumeMount) }}
+          volumeMounts:
+            - name: geoip-db
+              mountPath: {{ dir (((.Values.cymbal.geoip).dbPath) | default "/share/GeoLite2-City.mmdb") }}
+              readOnly: true
+          {{- end }}
+      {{- if ((.Values.cymbal.geoip).volumeMount) }}
+      volumes:
+        - name: geoip-db
+          {{- toYaml .Values.cymbal.geoip.volumeMount | nindent 10 }}
+      {{- end }}
+{{- end }}
 
+{{- if .Values.cyclotronJanitor.enabled }}
 ## ------------------------------------------------------------------
 ## Cyclotron Janitor (cleanup for Cyclotron job queue)
 ## ------------------------------------------------------------------
@@ -327,3 +358,4 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.cyclotronJanitor.resources | nindent 12 }}
+{{- end }}

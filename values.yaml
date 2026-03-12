@@ -474,6 +474,7 @@ externalTemporal:
 ## ------------------------------------------------------------------
 
 web:
+  enabled: true
   replicas: 1
   resources:
     requests:
@@ -508,6 +509,7 @@ web:
     # maxUnavailable: 1
 
 worker:
+  enabled: true
   replicas: 1
   resources:
     requests:
@@ -536,6 +538,7 @@ worker:
     minAvailable: 1
 
 plugins:
+  enabled: true
   image:
     repository: posthog/posthog-node
     tag: latest
@@ -567,6 +570,7 @@ plugins:
     minAvailable: 1
 
 capture:
+  enabled: true
   image:
     repository: ghcr.io/posthog/posthog/capture
     tag: master
@@ -584,10 +588,21 @@ capture:
   affinity: {}
   podAnnotations: {}
   extraEnv: []
+  ## GeoIP database configuration
+  ## The feature-flags image does NOT include GeoLite2-City.mmdb.
+  ## You must provide it via a volume mount for GeoIP to work.
+  geoip:
+    dbPath: /share/GeoLite2-City.mmdb
+    ## Volume mount to provide the GeoIP database file.
+    ## Example using a PVC:
+    ##   volumeMount:
+    ##     persistentVolumeClaim:
+    ##       claimName: geoip-db
+    volumeMount: {}
   autoscaling:
     enabled: false
     minReplicas: 1
-    maxReplicas: 20
+    maxReplicas: 10
     targetCPUUtilizationPercentage: 60
     targetMemoryUtilizationPercentage: 70
   podDisruptionBudget:
@@ -595,6 +610,7 @@ capture:
     minAvailable: 1
 
 replayCapture:
+  enabled: true
   image:
     repository: ghcr.io/posthog/posthog/capture
     tag: master
@@ -623,6 +639,7 @@ replayCapture:
     minAvailable: 1
 
 featureFlags:
+  enabled: true
   image:
     repository: ghcr.io/posthog/posthog/feature-flags
     tag: master
@@ -651,6 +668,7 @@ featureFlags:
     minAvailable: 1
 
 propertyDefsRs:
+  enabled: true
   image:
     repository: ghcr.io/posthog/posthog/property-defs-rs
     tag: master
@@ -670,6 +688,7 @@ propertyDefsRs:
   extraEnv: []
 
 livestream:
+  enabled: true
   image:
     repository: ghcr.io/posthog/posthog/livestream
     tag: master
@@ -689,6 +708,7 @@ livestream:
   extraEnv: []
 
 cymbal:
+  enabled: true
   image:
     repository: ghcr.io/posthog/posthog/cymbal
     tag: master
@@ -706,8 +726,20 @@ cymbal:
   affinity: {}
   podAnnotations: {}
   extraEnv: []
+  ## GeoIP database configuration
+  ## The cymbal image does NOT include GeoLite2-City.mmdb.
+  ## You must provide it via a volume mount for GeoIP to work.
+  geoip:
+    dbPath: /share/GeoLite2-City.mmdb
+    ## Volume mount to provide the GeoIP database file.
+    ## Example using a PVC:
+    ##   volumeMount:
+    ##     persistentVolumeClaim:
+    ##       claimName: geoip-db
+    volumeMount: {}
 
 cyclotronJanitor:
+  enabled: true
   image:
     repository: ghcr.io/posthog/posthog/cyclotron-janitor
     tag: master

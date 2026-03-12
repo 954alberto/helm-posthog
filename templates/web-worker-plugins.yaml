@@ -1,3 +1,4 @@
+{{- if .Values.web.enabled }}
 ## ------------------------------------------------------------------
 ## PostHog Web (Django app)
 ## ------------------------------------------------------------------
@@ -45,6 +46,7 @@ spec:
       {{- include "posthog.tolerations" (dict "root" . "component" "web") | nindent 6 }}
       {{- include "posthog.affinity" (dict "root" . "component" "web") | nindent 6 }}
       {{- include "posthog.topologySpreadConstraints" (dict "root" . "component" "web") | nindent 6 }}
+      terminationGracePeriodSeconds: 120
       initContainers:
         {{- if .Values.migrate.enabled }}
         - name: wait-for-db
@@ -123,13 +125,22 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
+            failureThreshold: 15
           livenessProbe:
             httpGet:
               path: /_health
               port: 8000
-            initialDelaySeconds: 60
+            initialDelaySeconds: 120
             periodSeconds: 15
             timeoutSeconds: 5
+            failureThreshold: 10
+          startupProbe:
+            httpGet:
+              path: /_health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 30
         {{- with .Values.web.sidecarContainers }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -137,7 +148,9 @@ spec:
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- end }}
 
+{{- if .Values.worker.enabled }}
 ## ------------------------------------------------------------------
 ## PostHog Worker (Celery)
 ## ------------------------------------------------------------------
@@ -194,7 +207,9 @@ spec:
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- end }}
 
+{{- if .Values.plugins.enabled }}
 ## ------------------------------------------------------------------
 ## PostHog Plugins (Node.js - CDP, webhooks, session recording API)
 ## ------------------------------------------------------------------
@@ -251,6 +266,11 @@ spec:
               name: http
           env:
             {{- include "posthog.commonEnv" . | nindent 12 }}
+            {{- $kafkaBrokers := .Values.externalKafka.brokers | default (printf "%s-kafka:9092" (include "posthog.fullname" .)) }}
+            - name: KAFKA_PRODUCER_METADATA_BROKER_LIST
+              value: {{ $kafkaBrokers | quote }}
+            - name: KAFKA_CONSUMER_METADATA_BROKER_LIST
+              value: {{ $kafkaBrokers | quote }}
             {{- $redisHost := .Values.externalRedis.url | default (printf "%s-redis" (include "posthog.fullname" .)) }}
             - name: SESSION_RECORDING_API_REDIS_HOST
               value: {{ $redisHost | quote }}
@@ -298,3 +318,4 @@ spec:
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- end }}

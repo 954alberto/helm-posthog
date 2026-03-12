@@ -148,6 +148,7 @@ temporal:
 ## Application services — minimal resources
 ## ------------------------------------------------------------------
 web:
+  enabled: true
   replicas: 1
   resources:
     requests:
@@ -157,6 +158,7 @@ web:
       memory: 768Mi
 
 worker:
+  enabled: true
   replicas: 1
   resources:
     requests:
@@ -166,6 +168,7 @@ worker:
       memory: 512Mi
 
 plugins:
+  enabled: true
   replicas: 1
   resources:
     requests:
@@ -175,6 +178,7 @@ plugins:
       memory: 512Mi
 
 capture:
+  enabled: true
   replicas: 1
   resources:
     requests:
@@ -184,6 +188,7 @@ capture:
       memory: 128Mi
 
 replayCapture:
+  enabled: true
   replicas: 1
   resources:
     requests:
@@ -192,16 +197,13 @@ replayCapture:
     limits:
       memory: 128Mi
 
+## Disabled: standalone feature-flags image does not include GeoLite2-City.mmdb.
+## The Rust binary panics fatally without it; no way to skip GeoIP init.
 featureFlags:
-  replicas: 1
-  resources:
-    requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
-      memory: 128Mi
+  enabled: false
 
 propertyDefsRs:
+  enabled: true
   replicas: 1
   resources:
     requests:
@@ -211,6 +213,7 @@ propertyDefsRs:
       memory: 128Mi
 
 livestream:
+  enabled: true
   replicas: 1
   resources:
     requests:
@@ -219,16 +222,13 @@ livestream:
     limits:
       memory: 64Mi
 
+## Disabled: standalone cymbal image does not include GeoLite2-City.mmdb.
+## The Rust binary panics fatally without it; no way to skip GeoIP init.
 cymbal:
-  replicas: 1
-  resources:
-    requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
-      memory: 128Mi
+  enabled: false
 
 cyclotronJanitor:
+  enabled: true
   resources:
     requests:
       cpu: 50m

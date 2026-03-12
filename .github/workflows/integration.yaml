@@ -76,16 +76,18 @@ jobs:
 
     - name: Wait for application Deployments
       run: |
+        # Only wait for services enabled in ci/kind-values.yaml
+        # Disabled: feature-flags (no GeoIP mmdb in image)
+        # Disabled: cymbal (no GeoIP mmdb in image)
+        # Disabled: temporal + temporal-django-worker
         DEPLOYMENTS=(
           "posthog-web"
           "posthog-worker"
           "posthog-plugins"
           "posthog-capture"
           "posthog-replay-capture"
-          "posthog-feature-flags"
           "posthog-property-defs-rs"
           "posthog-livestream"
-          "posthog-cymbal"
           "posthog-cyclotron-janitor"
         )
         PIDS=()
@@ -114,11 +116,11 @@ jobs:
 
     - name: Verify all pods
       run: |
-        echo "==> Waiting for pods to stabilize (up to 5 minutes)..."
-        # Retry loop: check every 30s for up to 5 minutes
-        for attempt in $(seq 1 10); do
+        echo "==> Waiting for pods to stabilize (up to 8 minutes)..."
+        # Retry loop: check every 30s for up to 8 minutes
+        for attempt in $(seq 1 16); do
           echo ""
-          echo "==> Attempt ${attempt}/10:"
+          echo "==> Attempt ${attempt}/16:"
           kubectl get pods -n posthog -o wide
 
           # Check for pods stuck in bad states
@@ -128,7 +130,7 @@ jobs:
             break
           fi
 
-          if [ "$attempt" -eq 10 ]; then
+          if [ "$attempt" -eq 16 ]; then
             echo ""
             echo "==> ERROR: Pods still in bad state after retries:"
             echo "$BAD_PODS"
@@ -136,7 +138,7 @@ jobs:
             echo "==> Logs from failing pods:"
             for pod in $(echo "$BAD_PODS" | awk '{print $1}'); do
               echo "--- ${pod} ---"
-              kubectl logs "${pod}" -n posthog --tail=80 || true
+              kubectl logs "${pod}" -n posthog --tail=80 --all-containers || true
             done
             exit 1
           fi
