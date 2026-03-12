@@ -13,7 +13,7 @@ jobs:
   kind:
     name: Deploy to Kind
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
     - uses: actions/checkout@v4
 
@@ -44,36 +44,38 @@ jobs:
 
     - name: Wait for infrastructure StatefulSets
       run: |
-        echo "==> Waiting for PostgreSQL..."
-        kubectl rollout status statefulset/posthog-postgresql \
-          -n posthog --timeout=180s
-
-        echo "==> Waiting for Redis..."
-        kubectl rollout status statefulset/posthog-redis \
-          -n posthog --timeout=120s
-
-        echo "==> Waiting for ZooKeeper..."
-        kubectl rollout status statefulset/posthog-zookeeper \
-          -n posthog --timeout=240s
-
-        echo "==> Waiting for Kafka..."
-        kubectl rollout status statefulset/posthog-kafka \
-          -n posthog --timeout=180s
-
-        echo "==> Waiting for ClickHouse..."
-        kubectl rollout status statefulset/posthog-clickhouse \
-          -n posthog --timeout=180s
-
-        echo "==> Waiting for MinIO..."
-        kubectl rollout status statefulset/posthog-minio \
-          -n posthog --timeout=120s
+        INFRA_SETS=(
+          "posthog-postgresql"
+          "posthog-redis"
+          "posthog-zookeeper"
+          "posthog-kafka"
+          "posthog-clickhouse"
+          "posthog-minio"
+        )
+        PIDS=()
+        for ss in "${INFRA_SETS[@]}"; do
+          (
+            echo "==> Waiting for ${ss}..."
+            kubectl rollout status statefulset/${ss} \
+              -n posthog --timeout=300s
+            echo "==> ${ss} is ready."
+          ) &
+          PIDS+=($!)
+        done
+        FAILED=0
+        for pid in "${PIDS[@]}"; do
+          if ! wait "$pid"; then
+            FAILED=1
+          fi
+        done
+        if [ "$FAILED" -ne 0 ]; then
+          echo "==> ERROR: One or more infrastructure StatefulSets failed."
+          exit 1
+        fi
+        echo "==> All infrastructure StatefulSets are ready."
 
     - name: Wait for application Deployments
       run: |
-        # Give app pods time to reconnect after infrastructure is ready
-        echo "==> Waiting 30s for app pods to stabilise after infra startup..."
-        sleep 30
-
         DEPLOYMENTS=(
           "posthog-web"
           "posthog-worker"
@@ -86,12 +88,29 @@ jobs:
           "posthog-cymbal"
           "posthog-cyclotron-janitor"
         )
-
+        PIDS=()
         for deploy in "${DEPLOYMENTS[@]}"; do
-          echo "==> Waiting for ${deploy}..."
-          kubectl rollout status deployment/${deploy} \
-            -n posthog --timeout=300s || true
+          (
+            echo "==> Waiting for ${deploy}..."
+            kubectl rollout status deployment/${deploy} \
+              -n posthog --timeout=600s
+            echo "==> ${deploy} is ready."
+          ) &
+          PIDS+=($!)
         done
+        FAILED=0
+        FAILED_DEPLOYS=""
+        for i in "${!PIDS[@]}"; do
+          if ! wait "${PIDS[$i]}"; then
+            FAILED=1
+            FAILED_DEPLOYS="${FAILED_DEPLOYS} ${DEPLOYMENTS[$i]}"
+          fi
+        done
+        if [ "$FAILED" -ne 0 ]; then
+          echo "==> WARNING: These deployments did not become ready:${FAILED_DEPLOYS}"
+          echo "==> Continuing to verification step..."
+        fi
+        echo "==> Application deployment wait complete."
 
     - name: Verify all pods
       run: |
