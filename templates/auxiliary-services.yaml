@@ -76,7 +76,7 @@ spec:
                   name: {{ include "posthog.secretName" . }}
                   key: database-url
             - name: MAXMIND_DB_PATH
-              value: ""
+              value: "/share/GeoLite2-City.mmdb"
             - name: COOKIELESS_REDIS_HOST
               value: {{ .Values.externalRedis.url | default (printf "%s-redis" (include "posthog.fullname" .)) | quote }}
             - name: COOKIELESS_REDIS_PORT
@@ -266,7 +266,13 @@ spec:
                   name: {{ include "posthog.secretName" . }}
                   key: database-url
             - name: MAXMIND_DB_PATH
-              value: ""
+              value: "/share/GeoLite2-City.mmdb"
+            - name: OBJECT_STORAGE_BUCKET
+              value: "symbol-sets"
+            - name: OBJECT_STORAGE_FORCE_PATH_STYLE
+              value: "true"
+            - name: OBJECT_STORAGE_REGION
+              value: "us-east-1"
             - name: ISSUE_BUCKETS_REDIS_URL
               valueFrom:
                 secretKeyRef:

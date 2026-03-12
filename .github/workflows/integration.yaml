@@ -114,7 +114,39 @@ jobs:
 
     - name: Verify all pods
       run: |
-        echo "==> All pods in posthog namespace:"
+        echo "==> Waiting for pods to stabilize (up to 5 minutes)..."
+        # Retry loop: check every 30s for up to 5 minutes
+        for attempt in $(seq 1 10); do
+          echo ""
+          echo "==> Attempt ${attempt}/10:"
+          kubectl get pods -n posthog -o wide
+
+          # Check for pods stuck in bad states
+          BAD_PODS=$(kubectl get pods -n posthog --no-headers | grep -E "CrashLoopBackOff|ImagePullBackOff|ErrImagePull|Error" || true)
+          if [ -z "$BAD_PODS" ]; then
+            echo "==> All pods are in acceptable states."
+            break
+          fi
+
+          if [ "$attempt" -eq 10 ]; then
+            echo ""
+            echo "==> ERROR: Pods still in bad state after retries:"
+            echo "$BAD_PODS"
+            echo ""
+            echo "==> Logs from failing pods:"
+            for pod in $(echo "$BAD_PODS" | awk '{print $1}'); do
+              echo "--- ${pod} ---"
+              kubectl logs "${pod}" -n posthog --tail=80 || true
+            done
+            exit 1
+          fi
+
+          echo "==> Some pods still recovering, waiting 30s..."
+          sleep 30
+        done
+
+        echo ""
+        echo "==> Final pod status:"
         kubectl get pods -n posthog -o wide
 
         echo ""
@@ -122,24 +154,7 @@ jobs:
         TOTAL=$(kubectl get pods -n posthog --no-headers | wc -l)
         RUNNING=$(kubectl get pods -n posthog --no-headers --field-selector=status.phase=Running | wc -l)
         FAILED=$(kubectl get pods -n posthog --no-headers --field-selector=status.phase=Failed | wc -l)
-
         echo "Total: ${TOTAL}, Running: ${RUNNING}, Failed: ${FAILED}"
-
-        # Fail if any pods are in CrashLoopBackOff or Error state
-        # Allow waiting status (Pending, ContainerCreating, Init) since images are large
-        CRASH_PODS=$(kubectl get pods -n posthog --no-headers | grep -E "CrashLoopBackOff|ImagePullBackOff|ErrImagePull" || true)
-        if [ -n "$CRASH_PODS" ]; then
-          echo ""
-          echo "==> ERROR: Pods in bad state:"
-          echo "$CRASH_PODS"
-          echo ""
-          echo "==> Logs from failing pods:"
-          for pod in $(echo "$CRASH_PODS" | awk '{print $1}'); do
-            echo "--- ${pod} ---"
-            kubectl logs "${pod}" -n posthog --tail=50 || true
-          done
-          exit 1
-        fi
 
     - name: Check infrastructure services are accessible
       run: |

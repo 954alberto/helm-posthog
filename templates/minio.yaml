@@ -45,6 +45,40 @@ spec:
       {{- include "posthog.nodeSelector" (dict "root" . "component" "minio") | nindent 6 }}
       {{- include "posthog.tolerations" (dict "root" . "component" "minio") | nindent 6 }}
       {{- include "posthog.affinity" (dict "root" . "component" "minio") | nindent 6 }}
+      initContainers:
+        - name: create-buckets
+          image: "{{ .Values.minio.image.repository }}:{{ .Values.minio.image.tag }}"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # Start MinIO server in the background for bucket creation
+              minio server /data --console-address ":9001" &
+              MINIO_PID=$!
+              sleep 3
+              # Configure mc alias
+              mc alias set local http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+              # Create required buckets (ignore if already exist)
+              mc mb --ignore-existing local/posthog
+              mc mb --ignore-existing local/symbol-sets
+              echo "Buckets created successfully."
+              # Stop the background MinIO
+              kill $MINIO_PID 2>/dev/null || true
+              wait $MINIO_PID 2>/dev/null || true
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "posthog.secretName" . }}
+                  key: object-storage-access-key
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "posthog.secretName" . }}
+                  key: object-storage-secret-key
+          volumeMounts:
+            - name: data
+              mountPath: /data
       containers:
         - name: minio
           image: "{{ .Values.minio.image.repository }}:{{ .Values.minio.image.tag }}"
