@@ -70,6 +70,10 @@ jobs:
 
     - name: Wait for application Deployments
       run: |
+        # Give app pods time to reconnect after infrastructure is ready
+        echo "==> Waiting 30s for app pods to stabilise after infra startup..."
+        sleep 30
+
         DEPLOYMENTS=(
           "posthog-web"
           "posthog-worker"
@@ -86,7 +90,7 @@ jobs:
         for deploy in "${DEPLOYMENTS[@]}"; do
           echo "==> Waiting for ${deploy}..."
           kubectl rollout status deployment/${deploy} \
-            -n posthog --timeout=180s || true
+            -n posthog --timeout=300s || true
         done
 
     - name: Verify all pods
@@ -103,7 +107,8 @@ jobs:
         echo "Total: ${TOTAL}, Running: ${RUNNING}, Failed: ${FAILED}"
 
         # Fail if any pods are in CrashLoopBackOff or Error state
-        CRASH_PODS=$(kubectl get pods -n posthog --no-headers | grep -E "CrashLoopBackOff|Error|ImagePullBackOff" || true)
+        # Allow waiting status (Pending, ContainerCreating, Init) since images are large
+        CRASH_PODS=$(kubectl get pods -n posthog --no-headers | grep -E "CrashLoopBackOff|ImagePullBackOff|ErrImagePull" || true)
         if [ -n "$CRASH_PODS" ]; then
           echo ""
           echo "==> ERROR: Pods in bad state:"

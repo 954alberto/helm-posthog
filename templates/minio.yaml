@@ -100,5 +100,9 @@ spec:
         resources:
           requests:
             storage: {{ .Values.minio.persistence.size }}
+  {{- else }}
+      volumes:
+        - name: data
+          emptyDir: {}
   {{- end }}
 {{- end }}

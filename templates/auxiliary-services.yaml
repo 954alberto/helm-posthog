@@ -155,6 +155,23 @@ spec:
               name: http
           env:
             {{- include "posthog.commonEnv" . | nindent 12 }}
+            - name: LIVESTREAM_MMDB_PATH
+              value: "/GeoLite2-City.mmdb"
+            - name: LIVESTREAM_KAFKA_BROKERS
+              value: {{ .Values.externalKafka.brokers | default (printf "%s-kafka:9092" (include "posthog.fullname" .)) | quote }}
+            - name: LIVESTREAM_KAFKA_TOPIC
+              value: "events_plugin_ingestion"
+            - name: LIVESTREAM_KAFKA_GROUP_ID
+              value: "livestream"
+            - name: LIVESTREAM_KAFKA_SECURITY_PROTOCOL
+              value: "PLAINTEXT"
+            - name: LIVESTREAM_KAFKA_SESSION_RECORDING_SECURITY_PROTOCOL
+              value: "PLAINTEXT"
+            - name: LIVESTREAM_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "posthog.secretName" . }}
+                  key: posthog-secret
             {{- with .Values.livestream.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

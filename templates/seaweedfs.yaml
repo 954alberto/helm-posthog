@@ -88,5 +88,9 @@ spec:
         resources:
           requests:
             storage: {{ .Values.seaweedfs.persistence.size }}
+  {{- else }}
+      volumes:
+        - name: data
+          emptyDir: {}
   {{- end }}
 {{- end }}

@@ -183,7 +183,7 @@ Call with dict "root" . "component" <values-key>
 Common environment variables shared across PostHog application services
 */}}
 {{- define "posthog.commonEnv" -}}
-- name: POSTHOG_SECRET
+- name: SECRET_KEY
   valueFrom:
     secretKeyRef:
       name: {{ include "posthog.secretName" . }}

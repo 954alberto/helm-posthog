@@ -87,6 +87,10 @@ spec:
         - name: clickhouse-users
           secret:
             secretName: {{ include "posthog.fullname" . }}-clickhouse-users
+        {{- if not .Values.clickhouse.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
   {{- if .Values.clickhouse.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:

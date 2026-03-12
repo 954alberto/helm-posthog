@@ -89,5 +89,9 @@ spec:
         resources:
           requests:
             storage: {{ .Values.elasticsearch.persistence.size }}
+  {{- else }}
+      volumes:
+        - name: data
+          emptyDir: {}
   {{- end }}
 {{- end }}
