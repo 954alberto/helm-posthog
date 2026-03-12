@@ -1,0 +1,152 @@
+name: Integration Test (Kind)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  kind:
+    name: Deploy to Kind
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: v3.17.0
+
+    - name: Create Kind cluster
+      uses: helm/kind-action@v1
+      with:
+        cluster_name: posthog-test
+        node_image: kindest/node:v1.31.6
+
+    - name: Verify cluster is ready
+      run: |
+        kubectl cluster-info
+        kubectl get nodes -o wide
+
+    - name: Install chart
+      run: |
+        helm install posthog . \
+          -f ci/kind-values.yaml \
+          --namespace posthog \
+          --create-namespace \
+          --timeout 5m \
+          --wait=false
+
+    - name: Wait for infrastructure StatefulSets
+      run: |
+        echo "==> Waiting for PostgreSQL..."
+        kubectl rollout status statefulset/posthog-postgresql \
+          -n posthog --timeout=180s
+
+        echo "==> Waiting for Redis..."
+        kubectl rollout status statefulset/posthog-redis \
+          -n posthog --timeout=120s
+
+        echo "==> Waiting for ZooKeeper..."
+        kubectl rollout status statefulset/posthog-zookeeper \
+          -n posthog --timeout=120s
+
+        echo "==> Waiting for Kafka..."
+        kubectl rollout status statefulset/posthog-kafka \
+          -n posthog --timeout=180s
+
+        echo "==> Waiting for ClickHouse..."
+        kubectl rollout status statefulset/posthog-clickhouse \
+          -n posthog --timeout=180s
+
+        echo "==> Waiting for MinIO..."
+        kubectl rollout status statefulset/posthog-minio \
+          -n posthog --timeout=120s
+
+    - name: Wait for application Deployments
+      run: |
+        DEPLOYMENTS=(
+          "posthog-web"
+          "posthog-worker"
+          "posthog-plugins"
+          "posthog-capture"
+          "posthog-replay-capture"
+          "posthog-feature-flags"
+          "posthog-property-defs-rs"
+          "posthog-livestream"
+          "posthog-cymbal"
+          "posthog-cyclotron-janitor"
+        )
+
+        for deploy in "${DEPLOYMENTS[@]}"; do
+          echo "==> Waiting for ${deploy}..."
+          kubectl rollout status deployment/${deploy} \
+            -n posthog --timeout=180s || true
+        done
+
+    - name: Verify all pods
+      run: |
+        echo "==> All pods in posthog namespace:"
+        kubectl get pods -n posthog -o wide
+
+        echo ""
+        echo "==> Pod status summary:"
+        TOTAL=$(kubectl get pods -n posthog --no-headers | wc -l)
+        RUNNING=$(kubectl get pods -n posthog --no-headers --field-selector=status.phase=Running | wc -l)
+        FAILED=$(kubectl get pods -n posthog --no-headers --field-selector=status.phase=Failed | wc -l)
+
+        echo "Total: ${TOTAL}, Running: ${RUNNING}, Failed: ${FAILED}"
+
+        # Fail if any pods are in CrashLoopBackOff or Error state
+        CRASH_PODS=$(kubectl get pods -n posthog --no-headers | grep -E "CrashLoopBackOff|Error|ImagePullBackOff" || true)
+        if [ -n "$CRASH_PODS" ]; then
+          echo ""
+          echo "==> ERROR: Pods in bad state:"
+          echo "$CRASH_PODS"
+          echo ""
+          echo "==> Logs from failing pods:"
+          for pod in $(echo "$CRASH_PODS" | awk '{print $1}'); do
+            echo "--- ${pod} ---"
+            kubectl logs "${pod}" -n posthog --tail=50 || true
+          done
+          exit 1
+        fi
+
+    - name: Check infrastructure services are accessible
+      run: |
+        echo "==> Checking PostgreSQL is accepting connections..."
+        kubectl exec statefulset/posthog-postgresql -n posthog -- \
+          pg_isready -U posthog -d posthog
+
+        echo "==> Checking Redis is responding..."
+        kubectl exec statefulset/posthog-redis -n posthog -- \
+          redis-cli ping
+
+    - name: Collect debug info on failure
+      if: failure()
+      run: |
+        echo "==> Describe all pods:"
+        kubectl describe pods -n posthog
+
+        echo ""
+        echo "==> Events:"
+        kubectl get events -n posthog --sort-by='.lastTimestamp'
+
+        echo ""
+        echo "==> All pod logs:"
+        for pod in $(kubectl get pods -n posthog --no-headers -o custom-columns=":metadata.name"); do
+          echo ""
+          echo "====== ${pod} ======"
+          kubectl logs "${pod}" -n posthog --tail=100 --all-containers || true
+        done
+
+    - name: Cleanup
+      if: always()
+      run: |
+        helm uninstall posthog -n posthog --wait || true
+        kubectl delete namespace posthog --wait=false || true

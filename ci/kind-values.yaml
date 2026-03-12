@@ -1,0 +1,254 @@
+## ------------------------------------------------------------------
+## Minimal values for Kind integration testing
+## Disables heavy optional services and reduces resource requests
+## to fit within GitHub Actions runner limits (~7GB RAM).
+## ------------------------------------------------------------------
+
+## Disable ingress (no ingress controller in Kind by default)
+ingress:
+  enabled: false
+
+## Relax security contexts for Kind (some images need root)
+global:
+  podSecurityContext:
+    runAsNonRoot: false
+    runAsUser: 0
+    runAsGroup: 0
+    fsGroup: 0
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    runAsNonRoot: false
+    capabilities:
+      drop:
+      - ALL
+
+## ------------------------------------------------------------------
+## Infrastructure — minimal resources, no persistence
+## ------------------------------------------------------------------
+postgresql:
+  enabled: true
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  podSecurityContext:
+    runAsNonRoot: false
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    seccompProfile:
+      type: RuntimeDefault
+
+clickhouse:
+  enabled: true
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+  podSecurityContext:
+    runAsNonRoot: false
+    runAsUser: 101
+    runAsGroup: 101
+    fsGroup: 101
+    seccompProfile:
+      type: RuntimeDefault
+
+redis:
+  enabled: true
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+  podSecurityContext:
+    runAsNonRoot: false
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    seccompProfile:
+      type: RuntimeDefault
+
+kafka:
+  enabled: true
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+  podSecurityContext:
+    runAsNonRoot: false
+    runAsUser: 101
+    runAsGroup: 101
+    fsGroup: 101
+    seccompProfile:
+      type: RuntimeDefault
+
+zookeeper:
+  enabled: true
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+  podSecurityContext:
+    runAsNonRoot: false
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+minio:
+  enabled: true
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  podSecurityContext:
+    runAsNonRoot: false
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+## Disable heavy optional services to save RAM
+seaweedfs:
+  enabled: false
+elasticsearch:
+  enabled: false
+temporal:
+  enabled: false
+
+## ------------------------------------------------------------------
+## Application services — minimal resources
+## ------------------------------------------------------------------
+web:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+worker:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+plugins:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+
+capture:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+replayCapture:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+featureFlags:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+propertyDefsRs:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+livestream:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
+
+cymbal:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+cyclotronJanitor:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
+
+temporalDjangoWorker:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+
+## Disable init jobs that require running services to already exist
+migrate:
+  enabled: false
+kafkaInit:
+  enabled: false
+asyncMigrationsCheck:
+  enabled: false
